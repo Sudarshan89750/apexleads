@@ -69,7 +69,13 @@ export function OpportunityForm({ initialData, onSubmit, isLoading }: Opportunit
             <FormItem>
               <FormLabel>Value ($)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="5000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
+                <Input
+                  type="number"
+                  placeholder="5000"
+                  {...field}
+                  value={field.value ?? ''}
+                  onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

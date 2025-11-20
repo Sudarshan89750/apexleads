@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -35,7 +35,7 @@ import type { Opportunity, PipelineStage } from '@shared/types';
 import { GripVertical, MoreHorizontal, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { toast } from "sonner";
-import { OpportunityForm, OpportunityFormValues } from './OpportunityForm';function useEffect<T = unknown>(...args: unknown[]): T | null {console.warn('useEffect is not implemented', args);return null as T | null;}
+import { OpportunityForm, OpportunityFormValues } from './OpportunityForm';
 type KanbanBoardProps = {
   stages: PipelineStage[];
   opportunities: Opportunity[];
@@ -78,7 +78,6 @@ function OpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps
         </div>
       </CardContent>
     </Card>);
-
 }
 function SortableOpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -99,7 +98,6 @@ function SortableOpportunityCard({ opportunity, onEdit, onDelete }: OpportunityC
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <OpportunityCard opportunity={opportunity} onEdit={onEdit} onDelete={onDelete} />
     </div>);
-
 }
 type StageColumnProps = {
   stage: PipelineStage;
@@ -128,7 +126,6 @@ function StageColumn({ stage, opportunities, onEdit, onDelete }: StageColumnProp
         </SortableContext>
       </div>
     </div>);
-
 }
 export function KanbanBoard({ stages, opportunities: initialOpportunities, onDataChange }: KanbanBoardProps) {
   const [opportunities, setOpportunities] = useState(initialOpportunities);
@@ -137,7 +134,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   useEffect(() => {
     setOpportunities(initialOpportunities);
   }, [initialOpportunities]);
@@ -168,32 +164,35 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
   const onDragEnd = useCallback(async (event: DragEndEvent) => {
     setActiveOpportunity(null);
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const activeOpp = active.data.current?.opportunity as Opportunity;
-    const overData = over.data.current;
-    const overStageId = overData?.type === 'Stage' ? over.id : overData?.opportunity.stageId;
-    if (activeOpp.stageId !== overStageId) {
-      try {
-        await api(`/api/opportunities/${activeOpp.id}`, {
-          method: 'PUT',
-          body: JSON.stringify({ stageId: overStageId })
-        });
-        toast.success(`Moved "${activeOpp.title}" to new stage.`);
-        onDataChange();
-      } catch (error) {
-        toast.error("Failed to move opportunity.");
-        console.error("Failed to update opportunity stage:", error);
-
-      }
+    if (!over) return;
+    const activeId = active.id;
+    const overId = over.id;
+    const activeOpp = opportunities.find(o => o.id === activeId);
+    if (!activeOpp) return;
+    // Dropping on a stage column
+    const overStageId = over.data.current?.type === 'Stage' ? overId : opportunities.find(o => o.id === overId)?.stageId;
+    if (overStageId && activeOpp.stageId !== overStageId) {
+        try {
+            await api(`/api/opportunities/${activeOpp.id}`, {
+                method: 'PUT',
+                body: JSON.stringify({ stageId: overStageId })
+            });
+            toast.success(`Moved "${activeOpp.title}" to new stage.`);
+            onDataChange();
+        } catch (error) {
+            toast.error("Failed to move opportunity.");
+            console.error("Failed to update opportunity stage:", error);
+            // Revert optimistic update on failure
+            setOpportunities(initialOpportunities);
+        }
     }
-  }, [onDataChange]);
+  }, [onDataChange, opportunities, initialOpportunities]);
   const onDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const isActiveAnOpportunity = active.data.current?.type === 'Opportunity';
     const isOverAnOpportunity = over.data.current?.type === 'Opportunity';
     if (!isActiveAnOpportunity) return;
-
     if (isActiveAnOpportunity && isOverAnOpportunity) {
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
@@ -265,7 +264,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
         collisionDetection={closestCorners}>
-
         <div className="flex gap-4 p-1">
           <SortableContext items={stages.map((s) => s.id)}>
             {stages.map((stage) =>
@@ -275,7 +273,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
               opportunities={opportunitiesByStage[stage.id] || []}
               onEdit={handleEditClick}
               onDelete={handleDeleteClick} />
-
             )}
           </SortableContext>
         </div>
@@ -293,7 +290,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
             initialData={selectedOpportunity}
             onSubmit={handleEditSubmit}
             isLoading={isSubmitting} />
-
         </DialogContent>
       </Dialog>
       {}
@@ -314,6 +310,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>);
-
+    </>
+  );
 }
