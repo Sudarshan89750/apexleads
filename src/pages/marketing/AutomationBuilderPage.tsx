@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +28,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api } from '@/lib/api-client';
-import type { Workflow, WorkflowAction } from '@shared/types';
+import type { Workflow, WorkflowAction, WorkflowTrigger } from '@shared/types';
 import { toast } from "sonner";
 const iconMap: Record<WorkflowAction['type'] | Workflow['trigger']['type'], JSX.Element> = {
   contact_created: <PlayCircle className="h-6 w-6 text-green-500" />,
@@ -43,8 +43,10 @@ export function AutomationBuilderPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isAddActionOpen, setIsAddActionOpen] = useState(false);
   const [isEditActionOpen, setIsEditActionOpen] = useState(false);
+  const [isEditTriggerOpen, setIsEditTriggerOpen] = useState(false);
   const [newActionType, setNewActionType] = useState<WorkflowAction['type'] | ''>('');
   const [editingAction, setEditingAction] = useState<{ action: WorkflowAction; index: number } | null>(null);
+  const [editingTrigger, setEditingTrigger] = useState<WorkflowTrigger | null>(null);
   const fetchWorkflow = useCallback(async () => {
     if (!id) return;
     try {
@@ -86,7 +88,7 @@ export function AutomationBuilderPage() {
     setNewActionType('');
   };
   const handleEditActionClick = (action: WorkflowAction, index: number) => {
-    setEditingAction({ action, index });
+    setEditingAction({ action: { ...action }, index });
     setIsEditActionOpen(true);
   };
   const handleUpdateAction = () => {
@@ -103,10 +105,21 @@ export function AutomationBuilderPage() {
     setWorkflow({ ...workflow, actions: updatedActions });
     toast.info("Action removed. Save to persist changes.");
   };
+  const handleEditTriggerClick = () => {
+    if (!workflow) return;
+    setEditingTrigger({ ...workflow.trigger });
+    setIsEditTriggerOpen(true);
+  };
+  const handleUpdateTrigger = () => {
+    if (!editingTrigger || !workflow) return;
+    setWorkflow({ ...workflow, trigger: editingTrigger });
+    setIsEditTriggerOpen(false);
+    setEditingTrigger(null);
+  };
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-        <Skeleton className="h-8 w-1/4 mb-6" />
+        <Skeleton className="h-8 w-1/T4 mb-6" />
         <Skeleton className="h-16 w-full mb-8" />
         <Skeleton className="h-24 w-1/2 mx-auto" />
       </div>
@@ -141,11 +154,16 @@ export function AutomationBuilderPage() {
         </Button>
       </div>
       <div className="flex flex-col items-center space-y-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md group">
           <CardHeader>
-            <CardTitle className="flex items-center gap-3">
-              {iconMap[workflow.trigger.type]}
-              <span>Trigger</span>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {iconMap[workflow.trigger.type]}
+                <span>Trigger</span>
+              </div>
+              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={handleEditTriggerClick}>
+                <Edit className="h-4 w-4" />
+              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -209,6 +227,43 @@ export function AutomationBuilderPage() {
           </DialogContent>
         </Dialog>
       </div>
+      {/* Edit Trigger Dialog */}
+      <Dialog open={isEditTriggerOpen} onOpenChange={setIsEditTriggerOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Trigger</DialogTitle>
+            <DialogDescription>Update the starting condition for this workflow.</DialogDescription>
+          </DialogHeader>
+          {editingTrigger && (
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label>Trigger Type</Label>
+                <Select
+                  value={editingTrigger.type}
+                  onValueChange={(value: WorkflowTrigger['type']) => setEditingTrigger({ ...editingTrigger, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a trigger type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="contact_created">Contact Created</SelectItem>
+                    <SelectItem value="form_submitted">Form Submitted</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="trigger-name">Trigger Name</Label>
+                <Input
+                  id="trigger-name"
+                  value={editingTrigger.name}
+                  onChange={(e) => setEditingTrigger({ ...editingTrigger, name: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+          <Button onClick={handleUpdateTrigger}>Update Trigger</Button>
+        </DialogContent>
+      </Dialog>
       {/* Edit Action Dialog */}
       <Dialog open={isEditActionOpen} onOpenChange={setIsEditActionOpen}>
         <DialogContent>
