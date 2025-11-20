@@ -2,8 +2,8 @@
  * Minimal real-world demo: One Durable Object instance per entity (User, ChatBoard), with Indexes for listing.
  */
 import { IndexedEntity } from "./core-utils";
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, Workflow } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS, MOCK_WORKFLOWS } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -84,4 +84,18 @@ export class AppointmentEntity extends IndexedEntity<Appointment> {
     endTime: "10:00",
   };
   static seedData = MOCK_APPOINTMENTS;
+}
+// WORKFLOW ENTITY
+export class WorkflowEntity extends IndexedEntity<Workflow> {
+  static readonly entityName = "workflow";
+  static readonly indexName = "workflows";
+  static readonly initialState: Workflow = {
+    id: "",
+    name: "",
+    trigger: { type: 'contact_created', name: 'When a new contact is created' },
+    actions: [],
+    status: 'inactive',
+    createdAt: new Date().toISOString(),
+  };
+  static seedData = MOCK_WORKFLOWS;
 }

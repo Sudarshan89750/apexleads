@@ -63,3 +63,20 @@ export interface SearchResult {
   description: string;
   link: string;
 }
+export interface WorkflowTrigger {
+  type: 'contact_created' | 'form_submitted';
+  name: string;
+}
+export interface WorkflowAction {
+  type: 'send_email' | 'add_tag';
+  name: string;
+  details: string;
+}
+export interface Workflow {
+  id: string;
+  name: string;
+  trigger: WorkflowTrigger;
+  actions: WorkflowAction[];
+  status: 'active' | 'inactive';
+  createdAt: string;
+}

@@ -5,6 +5,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   createBrowserRouter,
+  Outlet,
   RouterProvider,
 } from "react-router-dom";
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -17,6 +18,8 @@ import { OpportunitiesPage } from '@/pages/OpportunitiesPage';
 import { CalendarsPage } from '@/pages/CalendarsPage';
 import { MarketingPage } from '@/pages/MarketingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { AutomationListPage } from '@/pages/marketing/AutomationListPage';
+import { AutomationBuilderPage } from '@/pages/marketing/AutomationBuilderPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -27,7 +30,15 @@ const router = createBrowserRouter([
       { path: "contacts", element: <ContactsPage /> },
       { path: "opportunities", element: <OpportunitiesPage /> },
       { path: "calendars", element: <CalendarsPage /> },
-      { path: "marketing", element: <MarketingPage /> },
+      {
+        path: "marketing",
+        element: <Outlet />,
+        children: [
+          { index: true, element: <MarketingPage /> },
+          { path: "automations", element: <AutomationListPage /> },
+          { path: "automations/:id", element: <AutomationBuilderPage /> },
+        ]
+      },
       { path: "settings", element: <SettingsPage /> },
     ],
   },

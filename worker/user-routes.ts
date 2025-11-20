@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity, WorkflowEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
 import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_ACTIVITY_LOGS } from "@shared/mock-data";
-import type { Contact, Opportunity, Appointment, SearchResult } from "@shared/types";
+import type { Contact, Opportunity, Appointment, SearchResult, Workflow } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
@@ -30,11 +30,61 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       id: opp.id,
       type: 'opportunity',
       title: opp.title,
-      description: `Value: $${opp.value.toLocaleString()}`,
+      description: `Value: ${opp.value.toLocaleString()}`,
       link: `/opportunities`,
     }));
     const results = [...contactResults, ...opportunityResults];
     return ok(c, results);
+  });
+  // Workflow CRUD
+  app.get('/api/workflows', async (c) => {
+    await WorkflowEntity.ensureSeed(c.env);
+    const { items } = await WorkflowEntity.list(c.env);
+    return ok(c, items);
+  });
+  app.get('/api/workflows/:id', async (c) => {
+    const id = c.req.param('id');
+    const workflow = new WorkflowEntity(c.env, id);
+    if (!(await workflow.exists())) {
+      return notFound(c, 'Workflow not found');
+    }
+    const data = await workflow.getState();
+    return ok(c, data);
+  });
+  app.post('/api/workflows', async (c) => {
+    const body = await c.req.json<Pick<Workflow, 'name'>>();
+    if (!body.name) {
+      return bad(c, 'Workflow name is required');
+    }
+    const newWorkflow: Workflow = {
+      id: crypto.randomUUID(),
+      name: body.name,
+      trigger: { type: 'contact_created', name: 'When a new contact is created' },
+      actions: [],
+      status: 'inactive',
+      createdAt: new Date().toISOString(),
+    };
+    const created = await WorkflowEntity.create(c.env, newWorkflow);
+    return ok(c, created);
+  });
+  app.put('/api/workflows/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<Workflow>>();
+    const workflow = new WorkflowEntity(c.env, id);
+    if (!(await workflow.exists())) {
+      return notFound(c, 'Workflow not found');
+    }
+    await workflow.patch(body);
+    const updatedWorkflow = await workflow.getState();
+    return ok(c, updatedWorkflow);
+  });
+  app.delete('/api/workflows/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await WorkflowEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Workflow not found');
+    }
+    return ok(c, { id, deleted: true });
   });
   // Appointments CRUD
   app.get('/api/appointments', async (c) => {

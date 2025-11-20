@@ -1,25 +1,35 @@
-import { Mail, Zap, Filter, Bot } from 'lucide-react';
+import { Mail, Zap, Filter, Bot, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Link } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 const features = [
-  {
-    icon: Mail,
-    title: "Email Campaigns",
-    description: "Design, send, and track beautiful email campaigns to engage your audience.",
-  },
   {
     icon: Zap,
     title: "Automation Workflows",
     description: "Build powerful automations to nurture leads and manage customers on autopilot.",
+    link: "/marketing/automations",
+    enabled: true,
+  },
+  {
+    icon: Mail,
+    title: "Email Campaigns",
+    description: "Design, send, and track beautiful email campaigns to engage your audience.",
+    link: "#",
+    enabled: false,
   },
   {
     icon: Filter,
     title: "Funnel Builder",
     description: "Create high-converting sales and marketing funnels with a visual drag-and-drop editor.",
+    link: "#",
+    enabled: false,
   },
   {
     icon: Bot,
     title: "AI-Powered Tools",
     description: "Leverage AI for content generation, lead scoring, and predictive analytics.",
+    link: "#",
+    enabled: false,
   },
 ];
 export function MarketingPage() {
@@ -30,21 +40,37 @@ export function MarketingPage() {
           All-in-One Marketing Suite
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Everything you need to attract, engage, and convert customers is coming soon.
+          Everything you need to attract, engage, and convert customers.
         </p>
       </div>
       <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-2">
         {features.map((feature) => (
-          <Card key={feature.title} className="hover:shadow-lg hover:-translate-y-1 transition-all duration-200">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="bg-primary/10 p-3 rounded-full">
-                <feature.icon className="h-6 w-6 text-primary" />
-              </div>
-              <CardTitle>{feature.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">{feature.description}</p>
-            </CardContent>
+          <Card
+            key={feature.title}
+            className={cn(
+              "transition-all duration-200 group",
+              feature.enabled
+                ? "hover:shadow-lg hover:-translate-y-1"
+                : "bg-muted/50 cursor-not-allowed"
+            )}
+          >
+            <Link to={feature.enabled ? feature.link : '#'} className={cn(!feature.enabled && "pointer-events-none")}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={cn("p-3 rounded-full", feature.enabled ? "bg-primary/10" : "bg-muted-foreground/10")}>
+                    <feature.icon className={cn("h-6 w-6", feature.enabled ? "text-primary" : "text-muted-foreground")} />
+                  </div>
+                  <CardTitle>{feature.title}</CardTitle>
+                </div>
+                {feature.enabled && <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />}
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">{feature.description}</p>
+                {!feature.enabled && (
+                  <p className="text-sm font-semibold text-primary mt-2">Coming Soon</p>
+                )}
+              </CardContent>
+            </Link>
           </Card>
         ))}
       </div>

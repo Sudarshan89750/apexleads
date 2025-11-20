@@ -1,4 +1,4 @@
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog } from './types';
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog, Workflow } from './types';
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'User A' },
   { id: 'u2', name: 'User B' }
@@ -65,4 +65,33 @@ export const MOCK_ACTIVITY_LOGS: ActivityLog[] = [
   { id: 'act-3', type: 'appointment', description: 'Appointment "Project Kickoff" scheduled.', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), link: '/calendars' },
   { id: 'act-4', type: 'opportunity', description: 'Opportunity "E-commerce Platform" was won.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), link: '/opportunities' },
   { id: 'act-5', type: 'contact', description: 'Contact "Alice Johnson" status changed to "Active".', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), link: '/contacts' },
+];
+export const MOCK_WORKFLOWS: Workflow[] = [
+  {
+    id: 'wf-1',
+    name: 'New Lead Welcome Email',
+    trigger: { type: 'contact_created', name: 'When a new contact is created' },
+    actions: [{ type: 'send_email', name: 'Send Welcome Email', details: 'Template: Welcome Series #1' }],
+    status: 'active',
+    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'wf-2',
+    name: 'Follow-up on Demo Request',
+    trigger: { type: 'form_submitted', name: 'When "Demo Request" form is submitted' },
+    actions: [
+      { type: 'add_tag', name: 'Add Tag', details: 'Tag: demo-request' },
+      { type: 'send_email', name: 'Send Demo Info', details: 'Template: Demo Follow-up' },
+    ],
+    status: 'active',
+    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'wf-3',
+    name: 'Inactive Lead Nurturing',
+    trigger: { type: 'contact_created', name: 'When a contact is inactive for 30 days' },
+    actions: [{ type: 'send_email', name: 'Send Re-engagement Email', details: 'Template: Nurture Series #1' }],
+    status: 'inactive',
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
