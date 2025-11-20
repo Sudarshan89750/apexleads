@@ -1,4 +1,4 @@
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment } from './types';
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog } from './types';
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'User A' },
   { id: 'u2', name: 'User B' }
@@ -58,4 +58,11 @@ export const MOCK_APPOINTMENTS: Appointment[] = [
     { id: 'appt-2', title: 'Follow-up call with Bob Williams', date: today.toISOString().split('T')[0], startTime: '14:30', endTime: '15:00' },
     { id: 'appt-3', title: 'Design Review', date: tomorrow.toISOString().split('T')[0], startTime: '11:00', endTime: '12:30' },
     { id: 'appt-4', title: 'Quarterly Business Review', date: nextWeek.toISOString().split('T')[0], startTime: '09:00', endTime: '11:00' },
+];
+export const MOCK_ACTIVITY_LOGS: ActivityLog[] = [
+  { id: 'act-1', type: 'contact', description: 'New contact "Bob Williams" was added.', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), link: '/contacts' },
+  { id: 'act-2', type: 'opportunity', description: 'Opportunity "Website Redesign" moved to "Proposal Sent".', timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), link: '/opportunities' },
+  { id: 'act-3', type: 'appointment', description: 'Appointment "Project Kickoff" scheduled.', timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), link: '/calendars' },
+  { id: 'act-4', type: 'opportunity', description: 'Opportunity "E-commerce Platform" was won.', timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), link: '/opportunities' },
+  { id: 'act-5', type: 'contact', description: 'Contact "Alice Johnson" status changed to "Active".', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), link: '/contacts' },
 ];

@@ -2,12 +2,16 @@ import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
+import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_ACTIVITY_LOGS } from "@shared/mock-data";
 import type { Contact, Opportunity, Appointment } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
   app.get('/api/revenue-chart', (c) => ok(c, MOCK_CHART_DATA));
+  app.get('/api/activity-log', (c) => {
+    const sortedLogs = MOCK_ACTIVITY_LOGS.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return ok(c, sortedLogs);
+  });
   // Appointments CRUD
   app.get('/api/appointments', async (c) => {
     await AppointmentEntity.ensureSeed(c.env);

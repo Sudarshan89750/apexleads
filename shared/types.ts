@@ -49,3 +49,10 @@ export interface Appointment {
     startTime: string; // HH:MM
     endTime: string; // HH:MM
 }
+export interface ActivityLog {
+  id: string;
+  type: 'contact' | 'opportunity' | 'appointment';
+  description: string;
+  timestamp: string;
+  link?: string;
+}

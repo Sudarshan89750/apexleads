@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api-client';
-import { DollarSign, Users, Target, CheckCircle } from 'lucide-react';
+import { DollarSign, Target, CheckCircle, Users, Calendar, Briefcase } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { NavLink } from 'react-router-dom';
+import type { ActivityLog } from '@shared/types';
 type DashboardStats = {
   opportunities: number;
   pipelineValue: number;
@@ -14,20 +17,28 @@ type ChartData = {
   name: string;
   value: number;
 }[];
+const activityIcons = {
+  contact: <Users className="h-4 w-4" />,
+  opportunity: <Briefcase className="h-4 w-4" />,
+  appointment: <Calendar className="h-4 w-4" />,
+};
 export function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [chartData, setChartData] = useState<ChartData | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLog[] | null>(null);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
-        const [statsData, revenueData] = await Promise.all([
+        const [statsData, revenueData, activityData] = await Promise.all([
           api<DashboardStats>('/api/dashboard-stats'),
           api<ChartData>('/api/revenue-chart'),
+          api<ActivityLog[]>('/api/activity-log'),
         ]);
         setStats(statsData);
         setChartData(revenueData);
+        setActivityLog(activityData);
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
       } finally {
@@ -105,7 +116,7 @@ export function HomePage() {
                   <BarChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value / 1000}k`} />
+                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value / 1000}k`} />
                     <Tooltip />
                     <Legend />
                     <Bar dataKey="value" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -119,9 +130,36 @@ export function HomePage() {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground text-center pt-16">Activity feed coming soon.</p>
-              </div>
+              {loading ? (
+                <div className="space-y-4">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {activityLog?.map((activity) => (
+                    <div key={activity.id} className="flex items-start gap-4">
+                      <div className="bg-muted rounded-full p-2 text-muted-foreground">
+                        {activityIcons[activity.type]}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm">
+                          {activity.link ? (
+                            <NavLink to={activity.link} className="hover:underline">{activity.description}</NavLink>
+                          ) : (
+                            activity.description
+                          )}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(activity.timestamp), { addSuffix: true })}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
