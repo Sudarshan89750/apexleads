@@ -2,8 +2,8 @@
  * Minimal real-world demo: One Durable Object instance per entity (User, ChatBoard), with Indexes for listing.
  */
 import { IndexedEntity } from "./core-utils";
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -71,4 +71,17 @@ export class PipelineStageEntity extends IndexedEntity<PipelineStage> {
     title: "",
   };
   static seedData = MOCK_PIPELINE_STAGES;
+}
+// APPOINTMENT ENTITY
+export class AppointmentEntity extends IndexedEntity<Appointment> {
+  static readonly entityName = "appointment";
+  static readonly indexName = "appointments";
+  static readonly initialState: Appointment = {
+    id: "",
+    title: "",
+    date: new Date().toISOString().split('T')[0],
+    startTime: "09:00",
+    endTime: "10:00",
+  };
+  static seedData = MOCK_APPOINTMENTS;
 }

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import type { Appointment } from "@shared/types";
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, { message: "Invalid time format (HH:MM)" }),
@@ -19,16 +20,17 @@ const formSchema = z.object({
 });
 export type AppointmentFormValues = z.infer<typeof formSchema>;
 interface AppointmentFormProps {
+  initialData?: Appointment | null;
   onSubmit: (values: AppointmentFormValues) => void;
   isLoading?: boolean;
 }
-export function AppointmentForm({ onSubmit, isLoading }: AppointmentFormProps) {
+export function AppointmentForm({ initialData, onSubmit, isLoading }: AppointmentFormProps) {
   const form = useForm<AppointmentFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: "",
-      startTime: "09:00",
-      endTime: "10:00",
+      title: initialData?.title || "",
+      startTime: initialData?.startTime || "09:00",
+      endTime: initialData?.endTime || "10:00",
     },
   });
   return (
@@ -77,7 +79,7 @@ export function AppointmentForm({ onSubmit, isLoading }: AppointmentFormProps) {
         </div>
         <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Create Appointment
+          {initialData ? "Save Changes" : "Create Appointment"}
         </Button>
       </form>
     </Form>

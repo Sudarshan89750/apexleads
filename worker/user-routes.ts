@@ -1,14 +1,50 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_APPOINTMENTS } from "@shared/mock-data";
-import type { Contact, Opportunity } from "@shared/types";
+import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
+import type { Contact, Opportunity, Appointment } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
   app.get('/api/revenue-chart', (c) => ok(c, MOCK_CHART_DATA));
-  app.get('/api/appointments', (c) => ok(c, MOCK_APPOINTMENTS));
+  // Appointments CRUD
+  app.get('/api/appointments', async (c) => {
+    await AppointmentEntity.ensureSeed(c.env);
+    const { items } = await AppointmentEntity.list(c.env);
+    return ok(c, items);
+  });
+  app.post('/api/appointments', async (c) => {
+    const body = await c.req.json<Omit<Appointment, 'id'>>();
+    if (!body.title || !body.date || !body.startTime || !body.endTime) {
+      return bad(c, 'Title, date, start time, and end time are required');
+    }
+    const newAppointment: Appointment = {
+      id: crypto.randomUUID(),
+      ...body,
+    };
+    const created = await AppointmentEntity.create(c.env, newAppointment);
+    return ok(c, created);
+  });
+  app.put('/api/appointments/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<Appointment>>();
+    const appointment = new AppointmentEntity(c.env, id);
+    if (!(await appointment.exists())) {
+      return notFound(c, 'Appointment not found');
+    }
+    await appointment.patch(body);
+    const updatedAppointment = await appointment.getState();
+    return ok(c, updatedAppointment);
+  });
+  app.delete('/api/appointments/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await AppointmentEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Appointment not found');
+    }
+    return ok(c, { id, deleted: true });
+  });
   // Opportunities & Stages
   app.get('/api/opportunities', async (c) => {
     await OpportunityEntity.ensureSeed(c.env);
