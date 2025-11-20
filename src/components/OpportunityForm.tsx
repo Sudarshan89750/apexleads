@@ -33,7 +33,7 @@ export function OpportunityForm({ initialData, onSubmit, isLoading }: Opportunit
     defaultValues: {
       title: initialData?.title || "",
       contactName: initialData?.contactName || "",
-      value: initialData?.value || undefined,
+      value: initialData?.value ?? undefined,
     },
   });
   return (

@@ -74,6 +74,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     if (!(await workflow.exists())) {
       return notFound(c, 'Workflow not found');
     }
+    // Use patch for partial updates, but allow full replacement of actions array
     await workflow.patch(body);
     const updatedWorkflow = await workflow.getState();
     return ok(c, updatedWorkflow);
