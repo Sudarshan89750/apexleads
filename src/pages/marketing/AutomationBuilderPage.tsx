@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,12 +13,20 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { api } from '@/lib/api-client';
 import type { Workflow, WorkflowAction } from '@shared/types';
 import { toast } from "sonner";
@@ -34,8 +42,10 @@ export function AutomationBuilderPage() {
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isAddActionOpen, setIsAddActionOpen] = useState(false);
+  const [isEditActionOpen, setIsEditActionOpen] = useState(false);
   const [newActionType, setNewActionType] = useState<WorkflowAction['type'] | ''>('');
-  const fetchWorkflow = async () => {
+  const [editingAction, setEditingAction] = useState<{ action: WorkflowAction; index: number } | null>(null);
+  const fetchWorkflow = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
@@ -47,10 +57,10 @@ export function AutomationBuilderPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
   useEffect(() => {
     fetchWorkflow();
-  }, [id]);
+  }, [fetchWorkflow]);
   const handleSaveWorkflow = async () => {
     if (!workflow) return;
     setIsSaving(true);
@@ -74,6 +84,24 @@ export function AutomationBuilderPage() {
     setWorkflow(prev => prev ? { ...prev, actions: [...prev.actions, newAction] } : null);
     setIsAddActionOpen(false);
     setNewActionType('');
+  };
+  const handleEditActionClick = (action: WorkflowAction, index: number) => {
+    setEditingAction({ action, index });
+    setIsEditActionOpen(true);
+  };
+  const handleUpdateAction = () => {
+    if (!editingAction || !workflow) return;
+    const updatedActions = [...workflow.actions];
+    updatedActions[editingAction.index] = editingAction.action;
+    setWorkflow({ ...workflow, actions: updatedActions });
+    setIsEditActionOpen(false);
+    setEditingAction(null);
+  };
+  const handleDeleteAction = (index: number) => {
+    if (!workflow) return;
+    const updatedActions = workflow.actions.filter((_, i) => i !== index);
+    setWorkflow({ ...workflow, actions: updatedActions });
+    toast.info("Action removed. Save to persist changes.");
   };
   if (loading) {
     return (
@@ -127,11 +155,24 @@ export function AutomationBuilderPage() {
         <div className="h-8 w-px bg-border" />
         {workflow.actions.map((action, index) => (
           <>
-            <Card key={index} className="w-full max-w-md">
+            <Card key={index} className="w-full max-w-md group">
               <CardHeader>
-                <CardTitle className="flex items-center gap-3">
-                  {iconMap[action.type]}
-                  <span>{action.name}</span>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    {iconMap[action.type]}
+                    <span>{action.name}</span>
+                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleEditActionClick(action, index)}>Edit</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDeleteAction(index)} className="text-red-600">Delete</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -168,6 +209,36 @@ export function AutomationBuilderPage() {
           </DialogContent>
         </Dialog>
       </div>
+      {/* Edit Action Dialog */}
+      <Dialog open={isEditActionOpen} onOpenChange={setIsEditActionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Action</DialogTitle>
+            <DialogDescription>Update the details for this workflow action.</DialogDescription>
+          </DialogHeader>
+          {editingAction && (
+            <div className="py-4 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="action-name">Action Name</Label>
+                <Input
+                  id="action-name"
+                  value={editingAction.action.name}
+                  onChange={(e) => setEditingAction({ ...editingAction, action: { ...editingAction.action, name: e.target.value } })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="action-details">Details</Label>
+                <Input
+                  id="action-details"
+                  value={editingAction.action.details}
+                  onChange={(e) => setEditingAction({ ...editingAction, action: { ...editingAction.action, details: e.target.value } })}
+                />
+              </div>
+            </div>
+          )}
+          <Button onClick={handleUpdateAction}>Update Action</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
