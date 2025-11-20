@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -73,8 +73,14 @@ type StageColumnProps = {
 };
 function StageColumn({ stage, opportunities }: StageColumnProps) {
   const opportunitiesIds = useMemo(() => opportunities.map((opp) => opp.id), [opportunities]);
+  const { setNodeRef } = useSortable({
+    id: stage.id,
+    data: {
+      type: 'Stage',
+    },
+  });
   return (
-    <div className="flex flex-col w-72 shrink-0">
+    <div ref={setNodeRef} className="flex flex-col w-72 shrink-0">
       <div className="p-2 mb-4">
         <h3 className="text-lg font-semibold text-foreground">{stage.title}</h3>
       </div>
@@ -110,32 +116,47 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities }: Kan
       },
     })
   );
-  function onDragStart(event: DragStartEvent) {
+  const onDragStart = useCallback((event: DragStartEvent) => {
     if (event.active.data.current?.type === 'Opportunity') {
       setActiveOpportunity(event.active.data.current.opportunity);
     }
-  }
-  function onDragEnd(event: DragEndEvent) {
+  }, []);
+  const onDragEnd = useCallback((event: DragEndEvent) => {
     setActiveOpportunity(null);
     const { active, over } = event;
     if (!over) return;
     if (active.id === over.id) return;
-    const activeStageId = active.data.current?.opportunity.stageId;
-    const overStageId = over.data.current?.opportunity?.stageId || over.id;
+    const activeOpportunityData = active.data.current?.opportunity as Opportunity;
+    const overData = over.data.current;
+    const activeStageId = activeOpportunityData.stageId;
+    let overStageId: string;
+    if (overData?.type === 'Opportunity') {
+      overStageId = (overData.opportunity as Opportunity).stageId;
+    } else if (overData?.type === 'Stage') {
+      overStageId = over.id as string;
+    } else {
+      // Fallback for dropping on a column area but not a specific item
+      const overColumn = Object.keys(opportunitiesByStage).find(stageId => 
+        opportunitiesByStage[stageId].some(opp => opp.id === over.id)
+      );
+      overStageId = overColumn || activeStageId;
+    }
     if (activeStageId !== overStageId) {
-      // This is a simplified update. A real app would persist this change.
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
         if (activeIndex === -1) return prev;
-        prev[activeIndex].stageId = String(overStageId);
-        return arrayMove(prev, activeIndex, activeIndex);
+        const updatedOpportunities = [...prev];
+        updatedOpportunities[activeIndex] = {
+          ...updatedOpportunities[activeIndex],
+          stageId: overStageId,
+        };
+        return updatedOpportunities;
       });
     }
-  }
-  function onDragOver(event: DragOverEvent) {
+  }, [opportunitiesByStage]);
+  const onDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
-    if (!over) return;
-    if (active.id === over.id) return;
+    if (!over || active.id === over.id) return;
     const isActiveAnOpportunity = active.data.current?.type === 'Opportunity';
     const isOverAnOpportunity = over.data.current?.type === 'Opportunity';
     if (!isActiveAnOpportunity) return;
@@ -145,22 +166,32 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities }: Kan
         const activeIndex = prev.findIndex((o) => o.id === active.id);
         const overIndex = prev.findIndex((o) => o.id === over.id);
         if (prev[activeIndex].stageId !== prev[overIndex].stageId) {
-          prev[activeIndex].stageId = prev[overIndex].stageId;
-          return arrayMove(prev, activeIndex, overIndex);
+          const updatedOpportunities = [...prev];
+          updatedOpportunities[activeIndex] = {
+            ...updatedOpportunities[activeIndex],
+            stageId: prev[overIndex].stageId,
+          };
+          return arrayMove(updatedOpportunities, activeIndex, overIndex);
         }
         return arrayMove(prev, activeIndex, overIndex);
       });
     }
     // Dropping an Opportunity over a Stage column
-    const isOverAStage = stages.some(s => s.id === over.id);
+    const isOverAStage = over.data.current?.type === 'Stage';
     if (isActiveAnOpportunity && isOverAStage) {
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
-        prev[activeIndex].stageId = String(over.id);
-        return arrayMove(prev, activeIndex, activeIndex);
+        const updatedOpportunities = [...prev];
+        if (updatedOpportunities[activeIndex].stageId !== over.id) {
+          updatedOpportunities[activeIndex] = {
+            ...updatedOpportunities[activeIndex],
+            stageId: String(over.id),
+          };
+        }
+        return updatedOpportunities;
       });
     }
-  }
+  }, []);
   return (
     <DndContext
       sensors={sensors}
@@ -170,13 +201,15 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities }: Kan
       collisionDetection={closestCorners}
     >
       <div className="flex gap-4 overflow-x-auto p-1">
-        {stages.map((stage) => (
-          <StageColumn
-            key={stage.id}
-            stage={stage}
-            opportunities={opportunitiesByStage[stage.id] || []}
-          />
-        ))}
+        <SortableContext items={stages.map(s => s.id)}>
+          {stages.map((stage) => (
+            <StageColumn
+              key={stage.id}
+              stage={stage}
+              opportunities={opportunitiesByStage[stage.id] || []}
+            />
+          ))}
+        </SortableContext>
       </div>
       <DragOverlay>
         {activeOpportunity ? <OpportunityCard opportunity={activeOpportunity} /> : null}

@@ -1,14 +1,52 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import { MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
+import { MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
+import type { Contact } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
   app.get('/api/revenue-chart', (c) => ok(c, MOCK_CHART_DATA));
-  app.get('/api/contacts', (c) => ok(c, MOCK_CONTACTS));
   app.get('/api/opportunities', (c) => ok(c, { opportunities: MOCK_OPPORTUNITIES, stages: MOCK_PIPELINE_STAGES }));
+  // Contacts CRUD
+  app.get('/api/contacts', async (c) => {
+    await ContactEntity.ensureSeed(c.env);
+    const { items } = await ContactEntity.list(c.env);
+    return ok(c, items);
+  });
+  app.post('/api/contacts', async (c) => {
+    const body = await c.req.json<Omit<Contact, 'id' | 'createdAt'>>();
+    if (!body.name || !body.email) {
+      return bad(c, 'Name and email are required');
+    }
+    const newContact: Contact = {
+      id: crypto.randomUUID(),
+      ...body,
+      createdAt: new Date().toISOString(),
+    };
+    const created = await ContactEntity.create(c.env, newContact);
+    return ok(c, created);
+  });
+  app.put('/api/contacts/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<Contact>>();
+    const contact = new ContactEntity(c.env, id);
+    if (!(await contact.exists())) {
+      return notFound(c, 'Contact not found');
+    }
+    await contact.patch(body);
+    const updatedContact = await contact.getState();
+    return ok(c, updatedContact);
+  });
+  app.delete('/api/contacts/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await ContactEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Contact not found');
+    }
+    return ok(c, { id, deleted: true });
+  });
   // Original Template Routes
   app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CF Workers Demo' }}));
   // USERS
