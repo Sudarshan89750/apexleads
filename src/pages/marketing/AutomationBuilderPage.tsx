@@ -1,71 +1,42 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal, Edit, Clock, GitFork, MessageSquare, CalendarPlus, TagIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Save, ZoomIn, ZoomOut, FitScreen } from 'lucide-react';
+import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, Panel } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { api } from '@/lib/api-client';
-import type { Workflow, WorkflowAction, WorkflowTrigger } from '@shared/types';
+import type { Workflow } from '@shared/types';
 import { toast } from "sonner";
-const iconMap: Record<WorkflowAction['type'] | WorkflowTrigger['type'], JSX.Element> = {
-  contact_created: <PlayCircle className="h-6 w-6 text-green-500" />,
-  form_submitted: <PlayCircle className="h-6 w-6 text-green-500" />,
-  appointment_booked: <CalendarPlus className="h-6 w-6 text-green-500" />,
-  tag_added: <TagIcon className="h-6 w-6 text-green-500" />,
-  send_email: <Mail className="h-6 w-6 text-blue-500" />,
-  add_tag: <Tag className="h-6 w-6 text-purple-500" />,
-  wait: <Clock className="h-6 w-6 text-yellow-500" />,
-  if_else: <GitFork className="h-6 w-6 text-orange-500" />,
-  send_sms: <MessageSquare className="h-6 w-6 text-teal-500" />,
+import { workflowToGraph } from '@/components/automation-builder/utils';
+import { TriggerNode, ActionNode, PlaceholderNode } from '@/components/automation-builder/nodes';
+const nodeTypes = {
+  trigger: TriggerNode,
+  action: ActionNode,
+  placeholder: PlaceholderNode,
 };
 export function AutomationBuilderPage() {
   const { id } = useParams<{ id: string }>();
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAddActionOpen, setIsAddActionOpen] = useState(false);
-  const [isEditActionOpen, setIsEditActionOpen] = useState(false);
-  const [isEditTriggerOpen, setIsEditTriggerOpen] = useState(false);
-  const [newActionType, setNewActionType] = useState<WorkflowAction['type'] | ''>('');
-  const [editingAction, setEditingAction] = useState<{ action: WorkflowAction; index: number } | null>(null);
-  const [editingTrigger, setEditingTrigger] = useState<WorkflowTrigger | null>(null);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const fetchWorkflow = useCallback(async () => {
     if (!id) return;
     try {
       setLoading(true);
       const data = await api<Workflow>(`/api/workflows/${id}`);
       setWorkflow(data);
+      const { nodes: initialNodes, edges: initialEdges } = workflowToGraph(data);
+      setNodes(initialNodes);
+      setEdges(initialEdges);
     } catch (error) {
       toast.error("Failed to fetch workflow details.");
       setWorkflow(null);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, setNodes, setEdges]);
   useEffect(() => {
     fetchWorkflow();
   }, [fetchWorkflow]);
@@ -73,6 +44,8 @@ export function AutomationBuilderPage() {
     if (!workflow) return;
     setIsSaving(true);
     try {
+      // In a real app, you'd convert the graph back to the workflow structure
+      // For this demo, we save the original workflow data structure
       await api(`/api/workflows/${workflow.id}`, {
         method: 'PUT',
         body: JSON.stringify(workflow),
@@ -84,67 +57,11 @@ export function AutomationBuilderPage() {
       setIsSaving(false);
     }
   };
-  const handleAddAction = () => {
-    if (!newActionType || !workflow) return;
-    let newAction: WorkflowAction;
-    switch (newActionType) {
-      case 'send_email':
-        newAction = { type: 'send_email', name: 'Send Email', details: 'Template: New Email' };
-        break;
-      case 'add_tag':
-        newAction = { type: 'add_tag', name: 'Add Tag', details: 'Tag: New Tag' };
-        break;
-      case 'wait':
-        newAction = { type: 'wait', name: 'Wait', details: '1 day' };
-        break;
-      case 'if_else':
-        newAction = { type: 'if_else', name: 'If/Else Branch', details: 'Condition: Contact has tag "prospect"' };
-        break;
-      case 'send_sms':
-        newAction = { type: 'send_sms', name: 'Send SMS', details: 'Message: "Hi {contact.name}!"' };
-        break;
-      default:
-        return;
-    }
-    setWorkflow(prev => prev ? { ...prev, actions: [...prev.actions, newAction] } : null);
-    setIsAddActionOpen(false);
-    setNewActionType('');
-  };
-  const handleEditActionClick = (action: WorkflowAction, index: number) => {
-    setEditingAction({ action: { ...action }, index });
-    setIsEditActionOpen(true);
-  };
-  const handleUpdateAction = () => {
-    if (!editingAction || !workflow) return;
-    const updatedActions = [...workflow.actions];
-    updatedActions[editingAction.index] = editingAction.action;
-    setWorkflow({ ...workflow, actions: updatedActions });
-    setIsEditActionOpen(false);
-    setEditingAction(null);
-  };
-  const handleDeleteAction = (index: number) => {
-    if (!workflow) return;
-    const updatedActions = workflow.actions.filter((_, i) => i !== index);
-    setWorkflow({ ...workflow, actions: updatedActions });
-    toast.info("Action removed. Save to persist changes.");
-  };
-  const handleEditTriggerClick = () => {
-    if (!workflow) return;
-    setEditingTrigger({ ...workflow.trigger });
-    setIsEditTriggerOpen(true);
-  };
-  const handleUpdateTrigger = () => {
-    if (!editingTrigger || !workflow) return;
-    setWorkflow({ ...workflow, trigger: editingTrigger });
-    setIsEditTriggerOpen(false);
-    setEditingTrigger(null);
-  };
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-        <Skeleton className="h-8 w-1/4 mb-6" />
-        <Skeleton className="h-16 w-full mb-8" />
-        <Skeleton className="h-24 w-1/2 mx-auto" />
+      <div className="w-full h-full p-4">
+        <Skeleton className="h-12 w-1/4 mb-4" />
+        <Skeleton className="w-full h-[calc(100vh-10rem)]" />
       </div>
     );
   }
@@ -160,172 +77,47 @@ export function AutomationBuilderPage() {
     );
   }
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-      <div className="mb-6">
-        <Button variant="ghost" asChild>
-          <Link to="/marketing/automations">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Automations
-          </Link>
-        </Button>
+    <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col">
+      <header className="p-4 border-b flex items-center justify-between bg-background">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link to="/marketing/automations">
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <h1 className="text-xl font-semibold tracking-tight">{workflow.name}</h1>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <Plus className="h-4 w-4 mr-2" />
+            Add Action
+          </Button>
+          <Button onClick={handleSaveWorkflow} disabled={isSaving}>
+            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+            Save
+          </Button>
+        </div>
+      </header>
+      <div className="flex-1">
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-muted/30"
+        >
+          <Background />
+          <Controls showZoom={false} showFitView={false} showInteractive={false} />
+          <MiniMap />
+          <Panel position="top-right" className="flex gap-2 p-2">
+             <Button variant="outline" size="icon" onClick={() => {}}><ZoomIn className="h-4 w-4" /></Button>
+             <Button variant="outline" size="icon" onClick={() => {}}><ZoomOut className="h-4 w-4" /></Button>
+             <Button variant="outline" size="icon" onClick={() => {}}><FitScreen className="h-4 w-4" /></Button>
+          </Panel>
+        </ReactFlow>
       </div>
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">{workflow.name}</h1>
-        <Button onClick={handleSaveWorkflow} disabled={isSaving}>
-          {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Save Workflow
-        </Button>
-      </div>
-      <div className="flex flex-col items-center space-y-4">
-        <Card className="w-full max-w-md group">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {iconMap[workflow.trigger.type]}
-                <span>Trigger</span>
-              </div>
-              <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100" onClick={handleEditTriggerClick}>
-                <Edit className="h-4 w-4" />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>{workflow.trigger.name}</p>
-          </CardContent>
-        </Card>
-        <div className="h-8 w-px bg-border" />
-        {workflow.actions.map((action, index) => (
-          <>
-            <Card key={index} className="w-full max-w-md group">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    {iconMap[action.type]}
-                    <span>{action.name}</span>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleEditActionClick(action, index)}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteAction(index)} className="text-red-600">Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{action.details}</p>
-              </CardContent>
-            </Card>
-            <div className="h-8 w-px bg-border" />
-          </>
-        ))}
-        <Dialog open={isAddActionOpen} onOpenChange={setIsAddActionOpen}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="w-full max-w-md">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Action
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add a new action</DialogTitle>
-              <DialogDescription>Select the type of action you want to add to your workflow.</DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Select onValueChange={(value: WorkflowAction['type']) => setNewActionType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select an action type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="send_email">Send Email</SelectItem>
-                  <SelectItem value="send_sms">Send SMS</SelectItem>
-                  <SelectItem value="add_tag">Add Tag</SelectItem>
-                  <SelectItem value="wait">Wait</SelectItem>
-                  <SelectItem value="if_else">If/Else Branch</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button onClick={handleAddAction} disabled={!newActionType}>Add Action</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <Dialog open={isEditTriggerOpen} onOpenChange={setIsEditTriggerOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Trigger</DialogTitle>
-            <DialogDescription>Update the starting condition for this workflow.</DialogDescription>
-          </DialogHeader>
-          {editingTrigger && (
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label>Trigger Type</Label>
-                <Select
-                  value={editingTrigger.type}
-                  onValueChange={(value: WorkflowTrigger['type']) => setEditingTrigger({ ...editingTrigger, type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a trigger type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="contact_created">Contact Created</SelectItem>
-                    <SelectItem value="form_submitted">Form Submitted</SelectItem>
-                    <SelectItem value="appointment_booked">Appointment Booked</SelectItem>
-                    <SelectItem value="tag_added">Tag Added</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="trigger-name">Trigger Name</Label>
-                <Input
-                  id="trigger-name"
-                  value={editingTrigger.name}
-                  onChange={(e) => setEditingTrigger({ ...editingTrigger, name: e.target.value })}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={handleUpdateTrigger}>Update Trigger</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={isEditActionOpen} onOpenChange={setIsEditActionOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Action</DialogTitle>
-            <DialogDescription>Update the details for this workflow action.</DialogDescription>
-          </DialogHeader>
-          {editingAction && (
-            <div className="py-4 space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="action-name">Action Name</Label>
-                <Input
-                  id="action-name"
-                  value={editingAction.action.name}
-                  onChange={(e) => setEditingAction({ ...editingAction, action: { ...editingAction.action, name: e.target.value } })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="action-details">Details</Label>
-                <Input
-                  id="action-details"
-                  value={editingAction.action.details}
-                  onChange={(e) => setEditingAction({ ...editingAction, action: { ...editingAction.action, details: e.target.value } })}
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button onClick={handleUpdateAction}>Update Action</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
