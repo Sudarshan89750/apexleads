@@ -64,11 +64,11 @@ export interface SearchResult {
   link: string;
 }
 export interface WorkflowTrigger {
-  type: 'contact_created' | 'form_submitted';
+  type: 'contact_created' | 'form_submitted' | 'appointment_booked' | 'tag_added';
   name: string;
 }
 export interface WorkflowAction {
-  type: 'send_email' | 'add_tag';
+  type: 'send_email' | 'add_tag' | 'wait' | 'if_else' | 'send_sms';
   name: string;
   details: string;
 }

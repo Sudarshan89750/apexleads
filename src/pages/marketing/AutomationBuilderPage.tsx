@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal, Edit } from 'lucide-react';
+import { ArrowLeft, PlayCircle, Mail, Tag, Plus, Loader2, MoreHorizontal, Edit, Clock, GitFork, MessageSquare, CalendarPlus, TagIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   DropdownMenu,
@@ -30,11 +31,16 @@ import { Label } from "@/components/ui/label";
 import { api } from '@/lib/api-client';
 import type { Workflow, WorkflowAction, WorkflowTrigger } from '@shared/types';
 import { toast } from "sonner";
-const iconMap: Record<WorkflowAction['type'] | Workflow['trigger']['type'], JSX.Element> = {
+const iconMap: Record<WorkflowAction['type'] | WorkflowTrigger['type'], JSX.Element> = {
   contact_created: <PlayCircle className="h-6 w-6 text-green-500" />,
   form_submitted: <PlayCircle className="h-6 w-6 text-green-500" />,
+  appointment_booked: <CalendarPlus className="h-6 w-6 text-green-500" />,
+  tag_added: <TagIcon className="h-6 w-6 text-green-500" />,
   send_email: <Mail className="h-6 w-6 text-blue-500" />,
   add_tag: <Tag className="h-6 w-6 text-purple-500" />,
+  wait: <Clock className="h-6 w-6 text-yellow-500" />,
+  if_else: <GitFork className="h-6 w-6 text-orange-500" />,
+  send_sms: <MessageSquare className="h-6 w-6 text-teal-500" />,
 };
 export function AutomationBuilderPage() {
   const { id } = useParams<{ id: string }>();
@@ -80,9 +86,26 @@ export function AutomationBuilderPage() {
   };
   const handleAddAction = () => {
     if (!newActionType || !workflow) return;
-    const newAction: WorkflowAction = newActionType === 'send_email'
-      ? { type: 'send_email', name: 'Send Email', details: 'Template: New Email' }
-      : { type: 'add_tag', name: 'Add Tag', details: 'Tag: New Tag' };
+    let newAction: WorkflowAction;
+    switch (newActionType) {
+      case 'send_email':
+        newAction = { type: 'send_email', name: 'Send Email', details: 'Template: New Email' };
+        break;
+      case 'add_tag':
+        newAction = { type: 'add_tag', name: 'Add Tag', details: 'Tag: New Tag' };
+        break;
+      case 'wait':
+        newAction = { type: 'wait', name: 'Wait', details: '1 day' };
+        break;
+      case 'if_else':
+        newAction = { type: 'if_else', name: 'If/Else Branch', details: 'Condition: Contact has tag "prospect"' };
+        break;
+      case 'send_sms':
+        newAction = { type: 'send_sms', name: 'Send SMS', details: 'Message: "Hi {contact.name}!"' };
+        break;
+      default:
+        return;
+    }
     setWorkflow(prev => prev ? { ...prev, actions: [...prev.actions, newAction] } : null);
     setIsAddActionOpen(false);
     setNewActionType('');
@@ -119,7 +142,7 @@ export function AutomationBuilderPage() {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-        <Skeleton className="h-8 w-1/T4 mb-6" />
+        <Skeleton className="h-8 w-1/4 mb-6" />
         <Skeleton className="h-16 w-full mb-8" />
         <Skeleton className="h-24 w-1/2 mx-auto" />
       </div>
@@ -219,15 +242,19 @@ export function AutomationBuilderPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="send_email">Send Email</SelectItem>
+                  <SelectItem value="send_sms">Send SMS</SelectItem>
                   <SelectItem value="add_tag">Add Tag</SelectItem>
+                  <SelectItem value="wait">Wait</SelectItem>
+                  <SelectItem value="if_else">If/Else Branch</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleAddAction} disabled={!newActionType}>Add Action</Button>
+            <DialogFooter>
+              <Button onClick={handleAddAction} disabled={!newActionType}>Add Action</Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
-      {/* Edit Trigger Dialog */}
       <Dialog open={isEditTriggerOpen} onOpenChange={setIsEditTriggerOpen}>
         <DialogContent>
           <DialogHeader>
@@ -248,6 +275,8 @@ export function AutomationBuilderPage() {
                   <SelectContent>
                     <SelectItem value="contact_created">Contact Created</SelectItem>
                     <SelectItem value="form_submitted">Form Submitted</SelectItem>
+                    <SelectItem value="appointment_booked">Appointment Booked</SelectItem>
+                    <SelectItem value="tag_added">Tag Added</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -261,10 +290,11 @@ export function AutomationBuilderPage() {
               </div>
             </div>
           )}
-          <Button onClick={handleUpdateTrigger}>Update Trigger</Button>
+          <DialogFooter>
+            <Button onClick={handleUpdateTrigger}>Update Trigger</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-      {/* Edit Action Dialog */}
       <Dialog open={isEditActionOpen} onOpenChange={setIsEditActionOpen}>
         <DialogContent>
           <DialogHeader>
@@ -291,7 +321,9 @@ export function AutomationBuilderPage() {
               </div>
             </div>
           )}
-          <Button onClick={handleUpdateAction}>Update Action</Button>
+          <DialogFooter>
+            <Button onClick={handleUpdateAction}>Update Action</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

@@ -94,4 +94,16 @@ export const MOCK_WORKFLOWS: Workflow[] = [
     status: 'inactive',
     createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
   },
+  {
+    id: 'wf-4',
+    name: 'Post-Appointment Follow-up',
+    trigger: { type: 'appointment_booked', name: 'After an appointment is booked' },
+    actions: [
+      { type: 'wait', name: 'Wait', details: '1 hour' },
+      { type: 'send_sms', name: 'Send Thank You SMS', details: 'Message: "Thanks for booking!"' },
+      { type: 'if_else', name: 'If/Else', details: 'If contact has tag "VIP"' },
+    ],
+    status: 'active',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
 ];
