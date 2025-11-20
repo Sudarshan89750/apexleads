@@ -2,7 +2,7 @@
 
 > A comprehensive sales and marketing platform inspired by GoHighLevel, featuring a CRM, sales pipelines, and a central dashboard, built for demonstration.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Sudarshan89750/apexleads)
 
 ## About The Project
 
@@ -92,4 +92,4 @@ This project is designed to be deployed seamlessly to the Cloudflare network.
 
 Alternatively, you can deploy directly to Cloudflare with a single click.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/Sudarshan89750/apexleads)
