@@ -80,3 +80,12 @@ export interface Workflow {
   status: 'active' | 'inactive';
   createdAt: string;
 }
+export interface EmailCampaign {
+  id: string;
+  name: string;
+  subject: string;
+  body: string; // HTML content
+  status: 'draft' | 'sent';
+  createdAt: string;
+  sentAt?: string;
+}

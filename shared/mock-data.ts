@@ -1,4 +1,4 @@
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog, Workflow } from './types';
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog, Workflow, EmailCampaign } from './types';
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'User A' },
   { id: 'u2', name: 'User B' }
@@ -105,5 +105,33 @@ export const MOCK_WORKFLOWS: Workflow[] = [
     ],
     status: 'active',
     createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+export const MOCK_EMAIL_CAMPAIGNS: EmailCampaign[] = [
+  {
+    id: 'ec-1',
+    name: 'Q3 Product Update',
+    subject: 'New Features to Boost Your Productivity!',
+    body: '<h1>Hello World</h1><p>This is our new product update.</p>',
+    status: 'sent',
+    createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    sentAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ec-2',
+    name: 'Summer Sale Promotion',
+    subject: '☀��� Don\'t Miss Our Summer Sale!',
+    body: '<h1>Summer Sale</h1><p>Get 20% off all plans.</p>',
+    status: 'draft',
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'ec-3',
+    name: 'Welcome Series - Email 1',
+    subject: 'Welcome to ApexLeads!',
+    body: '<h1>Welcome!</h1><p>We are glad to have you.</p>',
+    status: 'sent',
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    sentAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];

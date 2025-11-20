@@ -1,6 +1,5 @@
 import { Edge, Node } from '@xyflow/react';
 import type { Workflow, WorkflowAction } from '@shared/types';
-const NODE_WIDTH = 320;
 const NODE_HEIGHT = 120;
 const VERTICAL_GAP = 80;
 const HORIZONTAL_GAP = 150;

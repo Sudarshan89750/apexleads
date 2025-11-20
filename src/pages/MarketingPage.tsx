@@ -14,8 +14,8 @@ const features = [
     icon: Mail,
     title: "Email Campaigns",
     description: "Design, send, and track beautiful email campaigns to engage your audience.",
-    link: "#",
-    enabled: false,
+    link: "/marketing/email-campaigns",
+    enabled: true,
   },
   {
     icon: Filter,

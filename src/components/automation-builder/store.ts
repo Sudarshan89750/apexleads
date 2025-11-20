@@ -3,7 +3,8 @@ import { immer } from 'zustand/middleware/immer';
 import type { Workflow, WorkflowAction } from '@shared/types';
 import type { Node, Edge } from '@xyflow/react';
 import { workflowToGraph, graphToWorkflow } from './utils';
-export type DialogState = 
+import { applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from '@xyflow/react';
+export type DialogState =
   | { type: 'add'; parentNodeId: string; sourceHandle?: string }
   | { type: 'edit'; action: WorkflowAction; nodeId: string }
   | { type: 'delete'; nodeId: string }
@@ -14,10 +15,8 @@ type AutomationState = {
   edges: Edge[];
   dialogState: DialogState;
   setWorkflow: (workflow: Workflow) => void;
-  setNodes: (nodes: Node[]) => void;
-  onNodesChange: (changes: any) => void;
-  setEdges: (edges: Edge[]) => void;
-  onEdgesChange: (changes: any) => void;
+  onNodesChange: (changes: NodeChange[]) => void;
+  onEdgesChange: (changes: EdgeChange[]) => void;
   openDialog: (dialogState: NonNullable<DialogState>) => void;
   closeDialog: () => void;
   updateAction: (nodeId: string, updatedAction: WorkflowAction) => void;
@@ -35,24 +34,15 @@ export const useAutomationBuilderStore = create<AutomationState>()(
       const { nodes, edges } = workflowToGraph(workflow);
       set({ workflow, nodes, edges });
     },
-    setNodes: (nodes) => set({ nodes }),
     onNodesChange: (changes) => {
-      // This is a simplified handler. For production, you'd use applyNodeChanges from @xyflow/react
       set((state) => {
-        changes.forEach((change: any) => {
-          if (change.type === 'position' && change.position) {
-            const node = state.nodes.find(n => n.id === change.id);
-            if (node) {
-              node.position = change.position;
-            }
-          }
-        });
+        state.nodes = applyNodeChanges(changes, state.nodes);
       });
     },
-    setEdges: (edges) => set({ edges }),
     onEdgesChange: (changes) => {
-      // This is a simplified handler. For production, you'd use applyEdgeChanges from @xyflow/react
-      // For this app, we don't expect user-driven edge changes.
+      set((state) => {
+        state.edges = applyEdgeChanges(changes, state.edges);
+      });
     },
     openDialog: (dialogState) => set({ dialogState }),
     closeDialog: () => set({ dialogState: null }),

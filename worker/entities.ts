@@ -2,8 +2,8 @@
  * Minimal real-world demo: One Durable Object instance per entity (User, ChatBoard), with Indexes for listing.
  */
 import { IndexedEntity } from "./core-utils";
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, Workflow } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS, MOCK_WORKFLOWS } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, Workflow, EmailCampaign } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS, MOCK_WORKFLOWS, MOCK_EMAIL_CAMPAIGNS } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -98,4 +98,18 @@ export class WorkflowEntity extends IndexedEntity<Workflow> {
     createdAt: new Date().toISOString(),
   };
   static seedData = MOCK_WORKFLOWS;
+}
+// EMAIL CAMPAIGN ENTITY
+export class EmailCampaignEntity extends IndexedEntity<EmailCampaign> {
+  static readonly entityName = "emailcampaign";
+  static readonly indexName = "emailcampaigns";
+  static readonly initialState: EmailCampaign = {
+    id: "",
+    name: "",
+    subject: "",
+    body: "",
+    status: 'draft',
+    createdAt: new Date().toISOString(),
+  };
+  static seedData = MOCK_EMAIL_CAMPAIGNS;
 }

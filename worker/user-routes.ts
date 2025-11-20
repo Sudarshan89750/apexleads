@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity, WorkflowEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity, WorkflowEntity, EmailCampaignEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
 import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_ACTIVITY_LOGS } from "@shared/mock-data";
-import type { Contact, Opportunity, Appointment, SearchResult, Workflow } from "@shared/types";
+import type { Contact, Opportunity, Appointment, SearchResult, Workflow, EmailCampaign } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
@@ -35,6 +35,56 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }));
     const results = [...contactResults, ...opportunityResults];
     return ok(c, results);
+  });
+  // Email Campaign CRUD
+  app.get('/api/email-campaigns', async (c) => {
+    await EmailCampaignEntity.ensureSeed(c.env);
+    const { items } = await EmailCampaignEntity.list(c.env);
+    return ok(c, items);
+  });
+  app.get('/api/email-campaigns/:id', async (c) => {
+    const id = c.req.param('id');
+    const campaign = new EmailCampaignEntity(c.env, id);
+    if (!(await campaign.exists())) {
+      return notFound(c, 'Email campaign not found');
+    }
+    const data = await campaign.getState();
+    return ok(c, data);
+  });
+  app.post('/api/email-campaigns', async (c) => {
+    const body = await c.req.json<Pick<EmailCampaign, 'name'>>();
+    if (!body.name) {
+      return bad(c, 'Campaign name is required');
+    }
+    const newCampaign: EmailCampaign = {
+      id: crypto.randomUUID(),
+      name: body.name,
+      subject: 'Untitled Subject',
+      body: '<p>Start writing your email here...</p>',
+      status: 'draft',
+      createdAt: new Date().toISOString(),
+    };
+    const created = await EmailCampaignEntity.create(c.env, newCampaign);
+    return ok(c, created);
+  });
+  app.put('/api/email-campaigns/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<EmailCampaign>>();
+    const campaign = new EmailCampaignEntity(c.env, id);
+    if (!(await campaign.exists())) {
+      return notFound(c, 'Email campaign not found');
+    }
+    await campaign.patch(body);
+    const updatedCampaign = await campaign.getState();
+    return ok(c, updatedCampaign);
+  });
+  app.delete('/api/email-campaigns/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await EmailCampaignEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Email campaign not found');
+    }
+    return ok(c, { id, deleted: true });
   });
   // Workflow CRUD
   app.get('/api/workflows', async (c) => {

@@ -74,7 +74,7 @@ export const PlaceholderNode: React.FC<NodeProps<{ label: string; parentNodeId: 
   const openDialog = useAutomationBuilderStore((s) => s.openDialog);
   return (
     <>
-      <div 
+      <div
         className="w-80 h-30 flex items-center justify-center border-2 border-dashed rounded-lg bg-muted/50 hover:bg-muted/80 transition-colors cursor-pointer"
         onClick={() => openDialog({ type: 'add', parentNodeId: data.parentNodeId, sourceHandle: data.sourceHandle })}
       >

@@ -20,6 +20,8 @@ import { MarketingPage } from '@/pages/MarketingPage';
 import { SettingsPage } from '@/pages/SettingsPage';
 import { AutomationListPage } from '@/pages/marketing/AutomationListPage';
 import { AutomationBuilderPage } from '@/pages/marketing/AutomationBuilderPage';
+import { EmailCampaignsPage } from '@/pages/marketing/EmailCampaignsPage';
+import { EmailCampaignBuilderPage } from '@/pages/marketing/EmailCampaignBuilderPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -37,6 +39,8 @@ const router = createBrowserRouter([
           { index: true, element: <MarketingPage /> },
           { path: "automations", element: <AutomationListPage /> },
           { path: "automations/:id", element: <AutomationBuilderPage /> },
+          { path: "email-campaigns", element: <EmailCampaignsPage /> },
+          { path: "email-campaigns/:id", element: <EmailCampaignBuilderPage /> },
         ]
       },
       { path: "settings", element: <SettingsPage /> },

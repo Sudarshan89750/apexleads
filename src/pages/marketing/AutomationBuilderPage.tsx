@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plus, Save, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { ReactFlow, Background, Controls, MiniMap, Panel, useReactFlow } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Panel, useReactFlow, NodeTypes } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api-client';
@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { TriggerNode, ActionNode, PlaceholderNode } from '@/components/automation-builder/nodes';
 import { useAutomationBuilderStore } from '@/components/automation-builder/store';
 import { ActionDialogs } from '@/components/automation-builder/ActionDialogs';
-const nodeTypes = {
+const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   placeholder: PlaceholderNode,
