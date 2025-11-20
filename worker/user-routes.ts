@@ -3,7 +3,7 @@ import type { Env } from './core-utils';
 import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
 import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_ACTIVITY_LOGS } from "@shared/mock-data";
-import type { Contact, Opportunity, Appointment } from "@shared/types";
+import type { Contact, Opportunity, Appointment, SearchResult } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
@@ -11,6 +11,30 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/activity-log', (c) => {
     const sortedLogs = MOCK_ACTIVITY_LOGS.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
     return ok(c, sortedLogs);
+  });
+  app.get('/api/search', async (c) => {
+    await ContactEntity.ensureSeed(c.env);
+    await OpportunityEntity.ensureSeed(c.env);
+    const [{ items: contacts }, { items: opportunities }] = await Promise.all([
+      ContactEntity.list(c.env),
+      OpportunityEntity.list(c.env),
+    ]);
+    const contactResults: SearchResult[] = contacts.map(contact => ({
+      id: contact.id,
+      type: 'contact',
+      title: contact.name,
+      description: contact.email,
+      link: `/contacts`,
+    }));
+    const opportunityResults: SearchResult[] = opportunities.map(opp => ({
+      id: opp.id,
+      type: 'opportunity',
+      title: opp.title,
+      description: `Value: $${opp.value.toLocaleString()}`,
+      link: `/opportunities`,
+    }));
+    const results = [...contactResults, ...opportunityResults];
+    return ok(c, results);
   });
   // Appointments CRUD
   app.get('/api/appointments', async (c) => {

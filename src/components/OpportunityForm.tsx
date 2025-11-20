@@ -16,10 +16,7 @@ import type { Opportunity } from "@shared/types";
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   contactName: z.string().min(2, { message: "Contact name must be at least 2 characters." }),
-  value: z.preprocess(
-    (val) => (String(val).trim() === '' ? undefined : Number(val)),
-    z.number({ invalid_type_error: "Value must be a number." }).min(0, { message: "Value must be a positive number." })
-  ),
+  value: z.coerce.number().min(0, { message: "Value must be a positive number." }).optional(),
 });
 export type OpportunityFormValues = z.infer<typeof formSchema>;
 interface OpportunityFormProps {
@@ -33,7 +30,7 @@ export function OpportunityForm({ initialData, onSubmit, isLoading }: Opportunit
     defaultValues: {
       title: initialData?.title || "",
       contactName: initialData?.contactName || "",
-      value: initialData?.value || 0,
+      value: initialData?.value || undefined,
     },
   });
   return (
@@ -72,7 +69,7 @@ export function OpportunityForm({ initialData, onSubmit, isLoading }: Opportunit
             <FormItem>
               <FormLabel>Value ($)</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="5000" {...field} />
+                <Input type="number" placeholder="5000" {...field} onChange={e => field.onChange(e.target.value === '' ? undefined : e.target.valueAsNumber)} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -56,3 +56,10 @@ export interface ActivityLog {
   timestamp: string;
   link?: string;
 }
+export interface SearchResult {
+  id: string;
+  type: 'contact' | 'opportunity';
+  title: string;
+  description: string;
+  link: string;
+}
