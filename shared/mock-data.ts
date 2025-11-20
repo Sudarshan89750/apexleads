@@ -1,4 +1,4 @@
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog, Workflow, EmailCampaign } from './types';
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, ActivityLog, Workflow, EmailCampaign, Funnel } from './types';
 export const MOCK_USERS: User[] = [
   { id: 'u1', name: 'User A' },
   { id: 'u2', name: 'User B' }
@@ -133,5 +133,31 @@ export const MOCK_EMAIL_CAMPAIGNS: EmailCampaign[] = [
     status: 'sent',
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     sentAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+export const MOCK_FUNNELS: Funnel[] = [
+  {
+    id: 'fn-1',
+    name: 'SaaS Trial Sign Up',
+    domain: 'try.apexleads.com',
+    steps: [
+      { id: 'step-1-1', type: 'page', name: 'Landing Page', path: '/' },
+      { id: 'step-1-2', type: 'form', name: 'Sign Up Form', path: '/signup' },
+      { id: 'step-1-3', type: 'thank_you', name: 'Thank You Page', path: '/thank-you' },
+    ],
+    status: 'active',
+    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 'fn-2',
+    name: 'Ebook Download',
+    domain: 'content.apexleads.com',
+    steps: [
+      { id: 'step-2-1', type: 'page', name: 'Ebook Squeeze Page', path: '/free-guide' },
+      { id: 'step-2-2', type: 'upsell', name: 'One-Time Offer', path: '/oto' },
+      { id: 'step-2-3', type: 'thank_you', name: 'Download Page', path: '/download' },
+    ],
+    status: 'inactive',
+    createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
   },
 ];

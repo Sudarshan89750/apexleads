@@ -89,3 +89,17 @@ export interface EmailCampaign {
   createdAt: string;
   sentAt?: string;
 }
+export interface FunnelStep {
+  id: string;
+  type: 'page' | 'form' | 'upsell' | 'thank_you';
+  name: string;
+  path: string; // e.g., /order-form
+}
+export interface Funnel {
+  id: string;
+  name: string;
+  domain: string;
+  steps: FunnelStep[];
+  status: 'active' | 'inactive';
+  createdAt: string;
+}

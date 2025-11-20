@@ -21,8 +21,8 @@ const features = [
     icon: Filter,
     title: "Funnel Builder",
     description: "Create high-converting sales and marketing funnels with a visual drag-and-drop editor.",
-    link: "#",
-    enabled: false,
+    link: "/marketing/funnels",
+    enabled: true,
   },
   {
     icon: Bot,

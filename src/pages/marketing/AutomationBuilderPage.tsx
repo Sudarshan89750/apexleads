@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, Plus, Save, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { ReactFlow, Background, Controls, MiniMap, Panel, useReactFlow, NodeTypes } from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Panel, useReactFlow, NodeTypes, ReactFlowProvider } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api-client';
@@ -139,7 +139,6 @@ function AutomationBuilderContent() {
     </div>
   );
 }
-import { ReactFlowProvider } from '@xyflow/react';
 export function AutomationBuilderPage() {
   return (
     <ReactFlowProvider>

@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity, WorkflowEntity, EmailCampaignEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity, AppointmentEntity, WorkflowEntity, EmailCampaignEntity, FunnelEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
 import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA, MOCK_ACTIVITY_LOGS } from "@shared/mock-data";
-import type { Contact, Opportunity, Appointment, SearchResult, Workflow, EmailCampaign } from "@shared/types";
+import type { Contact, Opportunity, Appointment, SearchResult, Workflow, EmailCampaign, Funnel } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
@@ -35,6 +35,59 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     }));
     const results = [...contactResults, ...opportunityResults];
     return ok(c, results);
+  });
+  // Funnel CRUD
+  app.get('/api/funnels', async (c) => {
+    await FunnelEntity.ensureSeed(c.env);
+    const { items } = await FunnelEntity.list(c.env);
+    return ok(c, items);
+  });
+  app.get('/api/funnels/:id', async (c) => {
+    const id = c.req.param('id');
+    const funnel = new FunnelEntity(c.env, id);
+    if (!(await funnel.exists())) {
+      return notFound(c, 'Funnel not found');
+    }
+    const data = await funnel.getState();
+    return ok(c, data);
+  });
+  app.post('/api/funnels', async (c) => {
+    const body = await c.req.json<Pick<Funnel, 'name'>>();
+    if (!body.name) {
+      return bad(c, 'Funnel name is required');
+    }
+    const newFunnel: Funnel = {
+      id: crypto.randomUUID(),
+      name: body.name,
+      domain: `${body.name.toLowerCase().replace(/\s+/g, '-')}.apexleads.com`,
+      steps: [
+        { id: crypto.randomUUID(), type: 'page', name: 'Landing Page', path: '/' },
+        { id: crypto.randomUUID(), type: 'thank_you', name: 'Thank You', path: '/thank-you' },
+      ],
+      status: 'inactive',
+      createdAt: new Date().toISOString(),
+    };
+    const created = await FunnelEntity.create(c.env, newFunnel);
+    return ok(c, created);
+  });
+  app.put('/api/funnels/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<Funnel>>();
+    const funnel = new FunnelEntity(c.env, id);
+    if (!(await funnel.exists())) {
+      return notFound(c, 'Funnel not found');
+    }
+    await funnel.patch(body);
+    const updatedFunnel = await funnel.getState();
+    return ok(c, updatedFunnel);
+  });
+  app.delete('/api/funnels/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await FunnelEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Funnel not found');
+    }
+    return ok(c, { id, deleted: true });
   });
   // Email Campaign CRUD
   app.get('/api/email-campaigns', async (c) => {

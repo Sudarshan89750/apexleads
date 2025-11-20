@@ -22,6 +22,8 @@ import { AutomationListPage } from '@/pages/marketing/AutomationListPage';
 import { AutomationBuilderPage } from '@/pages/marketing/AutomationBuilderPage';
 import { EmailCampaignsPage } from '@/pages/marketing/EmailCampaignsPage';
 import { EmailCampaignBuilderPage } from '@/pages/marketing/EmailCampaignBuilderPage';
+import { FunnelListPage } from '@/pages/marketing/FunnelListPage';
+import { FunnelBuilderPage } from '@/pages/marketing/FunnelBuilderPage';
 const router = createBrowserRouter([
   {
     path: "/",
@@ -41,6 +43,8 @@ const router = createBrowserRouter([
           { path: "automations/:id", element: <AutomationBuilderPage /> },
           { path: "email-campaigns", element: <EmailCampaignsPage /> },
           { path: "email-campaigns/:id", element: <EmailCampaignBuilderPage /> },
+          { path: "funnels", element: <FunnelListPage /> },
+          { path: "funnels/:id", element: <FunnelBuilderPage /> },
         ]
       },
       { path: "settings", element: <SettingsPage /> },

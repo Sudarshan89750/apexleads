@@ -2,8 +2,8 @@
  * Minimal real-world demo: One Durable Object instance per entity (User, ChatBoard), with Indexes for listing.
  */
 import { IndexedEntity } from "./core-utils";
-import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, Workflow, EmailCampaign } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS, MOCK_WORKFLOWS, MOCK_EMAIL_CAMPAIGNS } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage, Appointment, Workflow, EmailCampaign, Funnel } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_APPOINTMENTS, MOCK_WORKFLOWS, MOCK_EMAIL_CAMPAIGNS, MOCK_FUNNELS } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -112,4 +112,18 @@ export class EmailCampaignEntity extends IndexedEntity<EmailCampaign> {
     createdAt: new Date().toISOString(),
   };
   static seedData = MOCK_EMAIL_CAMPAIGNS;
+}
+// FUNNEL ENTITY
+export class FunnelEntity extends IndexedEntity<Funnel> {
+  static readonly entityName = "funnel";
+  static readonly indexName = "funnels";
+  static readonly initialState: Funnel = {
+    id: "",
+    name: "",
+    domain: "",
+    steps: [],
+    status: 'inactive',
+    createdAt: new Date().toISOString(),
+  };
+  static seedData = MOCK_FUNNELS;
 }

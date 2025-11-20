@@ -77,7 +77,7 @@ export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edg
 export const graphToWorkflow = (
   originalWorkflow: Workflow,
   nodes: Node[],
-  edges: Edge[]
+  _edges: Edge[]
 ): Workflow => {
   const actions: WorkflowAction[] = [];
   const actionNodes = nodes.filter(node => node.type === 'action');
