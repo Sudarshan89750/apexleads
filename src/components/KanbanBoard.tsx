@@ -8,8 +8,8 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  closestCorners,
-} from '@dnd-kit/core';
+  closestCorners } from
+'@dnd-kit/core';
 import { SortableContext, arrayMove } from '@dnd-kit/sortable';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -21,21 +21,21 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  DialogFooter } from
+"@/components/ui/dialog";
 import type { Opportunity, PipelineStage } from '@shared/types';
 import { GripVertical, MoreHorizontal, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api-client';
 import { toast } from "sonner";
-import { OpportunityForm, OpportunityFormValues } from './OpportunityForm';
+import { OpportunityForm, OpportunityFormValues } from './OpportunityForm';function useEffect<T = unknown>(...args: unknown[]): T | null {console.warn('useEffect is not implemented', args);return null as T | null;}
 type KanbanBoardProps = {
   stages: PipelineStage[];
   opportunities: Opportunity[];
@@ -77,20 +77,20 @@ function OpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps
           <Badge variant="secondary">${opportunity.value.toLocaleString()}</Badge>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 }
 function SortableOpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: opportunity.id,
     data: {
       type: 'Opportunity',
-      opportunity,
-    },
+      opportunity
+    }
   });
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition
   };
   if (isDragging) {
     return <div ref={setNodeRef} style={style} className="opacity-50"><OpportunityCard opportunity={opportunity} onEdit={() => {}} onDelete={() => {}} /></div>;
@@ -98,8 +98,8 @@ function SortableOpportunityCard({ opportunity, onEdit, onDelete }: OpportunityC
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
       <OpportunityCard opportunity={opportunity} onEdit={onEdit} onDelete={onDelete} />
-    </div>
-  );
+    </div>);
+
 }
 type StageColumnProps = {
   stage: PipelineStage;
@@ -112,8 +112,8 @@ function StageColumn({ stage, opportunities, onEdit, onDelete }: StageColumnProp
   const { setNodeRef } = useSortable({
     id: stage.id,
     data: {
-      type: 'Stage',
-    },
+      type: 'Stage'
+    }
   });
   return (
     <div ref={setNodeRef} className="flex flex-col w-72 shrink-0">
@@ -122,13 +122,13 @@ function StageColumn({ stage, opportunities, onEdit, onDelete }: StageColumnProp
       </div>
       <div className="flex-1 bg-muted/50 rounded-lg p-2">
         <SortableContext items={opportunitiesIds}>
-          {opportunities.map((opp) => (
-            <SortableOpportunityCard key={opp.id} opportunity={opp} onEdit={onEdit} onDelete={onDelete} />
-          ))}
+          {opportunities.map((opp) =>
+          <SortableOpportunityCard key={opp.id} opportunity={opp} onEdit={onEdit} onDelete={onDelete} />
+          )}
         </SortableContext>
       </div>
-    </div>
-  );
+    </div>);
+
 }
 export function KanbanBoard({ stages, opportunities: initialOpportunities, onDataChange }: KanbanBoardProps) {
   const [opportunities, setOpportunities] = useState(initialOpportunities);
@@ -137,7 +137,7 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  // Update local state if props change
+
   useEffect(() => {
     setOpportunities(initialOpportunities);
   }, [initialOpportunities]);
@@ -156,8 +156,8 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 10,
-      },
+        distance: 10
+      }
     })
   );
   const onDragStart = useCallback((event: DragStartEvent) => {
@@ -176,14 +176,14 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
       try {
         await api(`/api/opportunities/${activeOpp.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ stageId: overStageId }),
+          body: JSON.stringify({ stageId: overStageId })
         });
         toast.success(`Moved "${activeOpp.title}" to new stage.`);
-        onDataChange(); // Refresh data from parent
+        onDataChange();
       } catch (error) {
         toast.error("Failed to move opportunity.");
         console.error("Failed to update opportunity stage:", error);
-        // Revert optimistic update if it was implemented
+
       }
     }
   }, [onDataChange]);
@@ -193,7 +193,7 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
     const isActiveAnOpportunity = active.data.current?.type === 'Opportunity';
     const isOverAnOpportunity = over.data.current?.type === 'Opportunity';
     if (!isActiveAnOpportunity) return;
-    // Optimistic UI update for dragging
+
     if (isActiveAnOpportunity && isOverAnOpportunity) {
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
@@ -232,7 +232,7 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
     try {
       await api(`/api/opportunities/${selectedOpportunity.id}`, {
         method: 'PUT',
-        body: JSON.stringify(values),
+        body: JSON.stringify(values)
       });
       toast.success("Opportunity updated successfully.");
       setIsEditFormOpen(false);
@@ -264,26 +264,26 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
         onDragOver={onDragOver}
-        collisionDetection={closestCorners}
-      >
+        collisionDetection={closestCorners}>
+
         <div className="flex gap-4 p-1">
-          <SortableContext items={stages.map(s => s.id)}>
-            {stages.map((stage) => (
-              <StageColumn
-                key={stage.id}
-                stage={stage}
-                opportunities={opportunitiesByStage[stage.id] || []}
-                onEdit={handleEditClick}
-                onDelete={handleDeleteClick}
-              />
-            ))}
+          <SortableContext items={stages.map((s) => s.id)}>
+            {stages.map((stage) =>
+            <StageColumn
+              key={stage.id}
+              stage={stage}
+              opportunities={opportunitiesByStage[stage.id] || []}
+              onEdit={handleEditClick}
+              onDelete={handleDeleteClick} />
+
+            )}
           </SortableContext>
         </div>
         <DragOverlay>
           {activeOpportunity ? <OpportunityCard opportunity={activeOpportunity} onEdit={() => {}} onDelete={() => {}} /> : null}
         </DragOverlay>
       </DndContext>
-      {/* Edit Dialog */}
+      {}
       <Dialog open={isEditFormOpen} onOpenChange={setIsEditFormOpen}>
         <DialogContent>
           <DialogHeader>
@@ -292,11 +292,11 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
           <OpportunityForm
             initialData={selectedOpportunity}
             onSubmit={handleEditSubmit}
-            isLoading={isSubmitting}
-          />
+            isLoading={isSubmitting} />
+
         </DialogContent>
       </Dialog>
-      {/* Delete Dialog */}
+      {}
       <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
         <DialogContent>
           <DialogHeader>
@@ -314,6 +314,6 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities, onDat
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
-  );
+    </>);
+
 }
