@@ -42,3 +42,10 @@ export interface PipelineStage {
   id: string;
   title: string;
 }
+export interface Appointment {
+    id: string;
+    title: string;
+    date: string; // YYYY-MM-DD
+    startTime: string; // HH:MM
+    endTime: string; // HH:MM
+}
