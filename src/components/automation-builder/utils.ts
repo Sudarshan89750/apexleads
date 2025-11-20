@@ -5,7 +5,7 @@ const NODE_HEIGHT = 120;
 const VERTICAL_GAP = 80;
 const HORIZONTAL_GAP = 150;
 export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edge[] } => {
-  const nodes: Node[] = [];
+  const nodes: Node<any>[] = [];
   const edges: Edge[] = [];
   // Trigger Node
   const triggerId = 'trigger';
@@ -14,6 +14,7 @@ export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edg
     type: 'trigger',
     position: { x: 0, y: 0 },
     data: { label: workflow.trigger.name, type: workflow.trigger.type },
+    deletable: false,
   });
   let lastNodeId = triggerId;
   let yPos = NODE_HEIGHT + VERTICAL_GAP;
@@ -29,24 +30,23 @@ export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edg
       });
       edges.push({ id: `${lastNodeId}-${actionId}`, source: lastNodeId, target: actionId, type: 'smoothstep' });
       // Placeholder for 'Yes' branch
-      const yesBranchId = `${actionId}-yes`;
+      const yesBranchId = `${actionId}-yes-placeholder`;
       nodes.push({
         id: yesBranchId,
         type: 'placeholder',
         position: { x: -HORIZONTAL_GAP, y: yPos + NODE_HEIGHT + VERTICAL_GAP },
-        data: { label: 'Add action for YES' },
+        data: { label: 'Add action for YES', parentNodeId: actionId, sourceHandle: 'yes' },
       });
       edges.push({ id: `${actionId}-${yesBranchId}`, source: actionId, target: yesBranchId, sourceHandle: 'yes', label: 'Yes', type: 'smoothstep' });
       // Placeholder for 'No' branch
-      const noBranchId = `${actionId}-no`;
+      const noBranchId = `${actionId}-no-placeholder`;
       nodes.push({
         id: noBranchId,
         type: 'placeholder',
         position: { x: HORIZONTAL_GAP, y: yPos + NODE_HEIGHT + VERTICAL_GAP },
-        data: { label: 'Add action for NO' },
+        data: { label: 'Add action for NO', parentNodeId: actionId, sourceHandle: 'no' },
       });
       edges.push({ id: `${actionId}-${noBranchId}`, source: actionId, target: noBranchId, sourceHandle: 'no', label: 'No', type: 'smoothstep' });
-      // For simplicity, we don't continue the main flow after a branch in this visualizer
       lastNodeId = ''; // End the main flow
     } else {
       nodes.push({
@@ -62,5 +62,34 @@ export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edg
       yPos += NODE_HEIGHT + VERTICAL_GAP;
     }
   });
+  // Add a final placeholder if the last action was not a branch
+  if (lastNodeId) {
+    const finalPlaceholderId = 'final-placeholder';
+    nodes.push({
+      id: finalPlaceholderId,
+      type: 'placeholder',
+      position: { x: 0, y: yPos },
+      data: { label: 'Add action', parentNodeId: lastNodeId },
+    });
+    edges.push({ id: `${lastNodeId}-${finalPlaceholderId}`, source: lastNodeId, target: finalPlaceholderId, type: 'smoothstep' });
+  }
   return { nodes, edges };
+};
+export const graphToWorkflow = (
+  originalWorkflow: Workflow,
+  nodes: Node[],
+  edges: Edge[]
+): Workflow => {
+  const actions: WorkflowAction[] = [];
+  const actionNodes = nodes.filter(node => node.type === 'action');
+  // This is a simplified conversion that assumes a linear flow for now.
+  // A production implementation would need to traverse the graph from the trigger.
+  actionNodes.sort((a, b) => a.position.y - b.position.y);
+  for (const node of actionNodes) {
+    actions.push(node.data as WorkflowAction);
+  }
+  return {
+    ...originalWorkflow,
+    actions,
+  };
 };

@@ -1,54 +1,71 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Plus, Save, ZoomIn, ZoomOut, FitScreen } from 'lucide-react';
-import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, Panel } from '@xyflow/react';
+import { ArrowLeft, Loader2, Plus, Save, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
+import { ReactFlow, Background, Controls, MiniMap, Panel, useReactFlow } from '@xyflow/react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api-client';
 import type { Workflow } from '@shared/types';
 import { toast } from "sonner";
-import { workflowToGraph } from '@/components/automation-builder/utils';
 import { TriggerNode, ActionNode, PlaceholderNode } from '@/components/automation-builder/nodes';
+import { useAutomationBuilderStore } from '@/components/automation-builder/store';
+import { ActionDialogs } from '@/components/automation-builder/ActionDialogs';
 const nodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   placeholder: PlaceholderNode,
 };
-export function AutomationBuilderPage() {
+function AutomationBuilderContent() {
   const { id } = useParams<{ id: string }>();
-  const [workflow, setWorkflow] = useState<Workflow | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const fetchWorkflow = useCallback(async () => {
-    if (!id) return;
-    try {
-      setLoading(true);
-      const data = await api<Workflow>(`/api/workflows/${id}`);
-      setWorkflow(data);
-      const { nodes: initialNodes, edges: initialEdges } = workflowToGraph(data);
-      setNodes(initialNodes);
-      setEdges(initialEdges);
-    } catch (error) {
-      toast.error("Failed to fetch workflow details.");
-      setWorkflow(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [id, setNodes, setEdges]);
+  const { fitView } = useReactFlow();
+  const {
+    workflow,
+    nodes,
+    edges,
+    setWorkflow,
+    onNodesChange,
+    onEdgesChange,
+    getWorkflowPayload,
+  } = useAutomationBuilderStore((s) => ({
+    workflow: s.workflow,
+    nodes: s.nodes,
+    edges: s.edges,
+    setWorkflow: s.setWorkflow,
+    onNodesChange: s.onNodesChange,
+    onEdgesChange: s.onEdgesChange,
+    getWorkflowPayload: s.getWorkflowPayload,
+  }));
+  const [loading, setLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
   useEffect(() => {
+    if (!id) return;
+    const fetchWorkflow = async () => {
+      try {
+        setLoading(true);
+        const data = await api<Workflow>(`/api/workflows/${id}`);
+        setWorkflow(data);
+      } catch (error) {
+        toast.error("Failed to fetch workflow details.");
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchWorkflow();
-  }, [fetchWorkflow]);
+  }, [id, setWorkflow]);
+  useEffect(() => {
+    // Ensure fitView is called after nodes are loaded
+    if (nodes.length > 0) {
+      setTimeout(() => fitView(), 50);
+    }
+  }, [nodes.length, fitView]);
   const handleSaveWorkflow = async () => {
-    if (!workflow) return;
+    const payload = getWorkflowPayload();
+    if (!payload) return;
     setIsSaving(true);
     try {
-      // In a real app, you'd convert the graph back to the workflow structure
-      // For this demo, we save the original workflow data structure
-      await api(`/api/workflows/${workflow.id}`, {
+      await api(`/api/workflows/${payload.id}`, {
         method: 'PUT',
-        body: JSON.stringify(workflow),
+        body: JSON.stringify(payload),
       });
       toast.success("Workflow saved successfully.");
     } catch (error) {
@@ -112,12 +129,21 @@ export function AutomationBuilderPage() {
           <Controls showZoom={false} showFitView={false} showInteractive={false} />
           <MiniMap />
           <Panel position="top-right" className="flex gap-2 p-2">
-             <Button variant="outline" size="icon" onClick={() => {}}><ZoomIn className="h-4 w-4" /></Button>
-             <Button variant="outline" size="icon" onClick={() => {}}><ZoomOut className="h-4 w-4" /></Button>
-             <Button variant="outline" size="icon" onClick={() => {}}><FitScreen className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => {}}><ZoomIn className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => {}}><ZoomOut className="h-4 w-4" /></Button>
+            <Button variant="outline" size="icon" onClick={() => fitView()}><Maximize className="h-4 w-4" /></Button>
           </Panel>
         </ReactFlow>
+        <ActionDialogs />
       </div>
     </div>
+  );
+}
+import { ReactFlowProvider } from '@xyflow/react';
+export function AutomationBuilderPage() {
+  return (
+    <ReactFlowProvider>
+      <AutomationBuilderContent />
+    </ReactFlowProvider>
   );
 }
