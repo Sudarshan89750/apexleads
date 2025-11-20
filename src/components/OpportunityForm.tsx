@@ -18,7 +18,7 @@ const formSchema = z.object({
   contactName: z.string().min(2, { message: "Contact name must be at least 2 characters." }),
   value: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.coerce.number().optional()
+    z.coerce.number({ invalid_type_error: "Value must be a number." }).optional()
   ),
 });
 export type OpportunityFormValues = z.infer<typeof formSchema>;
