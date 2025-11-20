@@ -9,6 +9,7 @@ import type { Funnel } from '@shared/types';
 import { toast } from "sonner";
 import { PageNode, FormNode, UpsellNode, ThankYouNode, PlaceholderNode } from '@/components/funnel-builder/nodes';
 import { useFunnelBuilderStore } from '@/components/funnel-builder/store';
+import { StepDialogs } from '@/components/funnel-builder/StepDialogs';
 const nodeTypes: NodeTypes = {
   page: PageNode,
   form: FormNode,
@@ -27,6 +28,7 @@ function FunnelBuilderContent() {
     onNodesChange,
     onEdgesChange,
     getFunnelPayload,
+    openDialog,
   } = useFunnelBuilderStore((s) => s);
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
@@ -47,7 +49,7 @@ function FunnelBuilderContent() {
   }, [id, setFunnel]);
   useEffect(() => {
     if (nodes.length > 0) {
-      setTimeout(() => fitView(), 50);
+      setTimeout(() => fitView({ duration: 200 }), 50);
     }
   }, [nodes.length, fitView]);
   const handleSaveFunnel = async () => {
@@ -64,6 +66,14 @@ function FunnelBuilderContent() {
       toast.error("Failed to save funnel.");
     } finally {
       setIsSaving(false);
+    }
+  };
+  const handleAddStep = () => {
+    const lastNode = nodes.find(n => n.type === 'placeholder');
+    if (lastNode && lastNode.data.parentNodeId) {
+      openDialog({ type: 'add', parentNodeId: lastNode.data.parentNodeId });
+    } else {
+      toast.error("Could not determine where to add the new step.");
     }
   };
   if (loading) {
@@ -97,7 +107,7 @@ function FunnelBuilderContent() {
           <h1 className="text-xl font-semibold tracking-tight">{funnel.name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleAddStep}>
             <Plus className="h-4 w-4 mr-2" />
             Add Step
           </Button>
@@ -121,6 +131,7 @@ function FunnelBuilderContent() {
           <Controls />
           <MiniMap />
         </ReactFlow>
+        <StepDialogs />
       </div>
     </div>
   );
