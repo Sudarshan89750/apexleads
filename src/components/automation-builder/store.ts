@@ -11,7 +11,7 @@ export type DialogState =
   | null;
 type AutomationState = {
   workflow: Workflow | null;
-  nodes: Node[];
+  nodes: Node<any>[];
   edges: Edge[];
   dialogState: DialogState;
   setWorkflow: (workflow: Workflow) => void;

@@ -16,7 +16,7 @@ import type { Opportunity } from "@shared/types";
 const formSchema = z.object({
   title: z.string().min(2, { message: "Title must be at least 2 characters." }),
   contactName: z.string().min(2, { message: "Contact name must be at least 2 characters." }),
-  value: z.coerce.number({ invalid_type_error: "Value must be a number." }).optional(),
+  value: z.coerce.number().optional(),
 });
 export type OpportunityFormValues = z.infer<typeof formSchema>;
 interface OpportunityFormProps {

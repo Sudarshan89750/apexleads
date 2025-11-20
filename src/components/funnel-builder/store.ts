@@ -11,7 +11,7 @@ export type DialogState =
   | null;
 type FunnelState = {
   funnel: Funnel | null;
-  nodes: Node[];
+  nodes: Node<any>[];
   edges: Edge[];
   dialogState: DialogState;
   setFunnel: (funnel: Funnel) => void;

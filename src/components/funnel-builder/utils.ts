@@ -3,8 +3,8 @@ import type { Funnel, FunnelStep } from '@shared/types';
 const NODE_WIDTH = 256;
 const NODE_HEIGHT = 120;
 const VERTICAL_GAP = 80;
-export const funnelToGraph = (funnel: Funnel): { nodes: Node[]; edges: Edge[] } => {
-  const nodes: Node<FunnelStep | { parentNodeId: string }>[] = [];
+export const funnelToGraph = (funnel: Funnel): { nodes: Node<any>[]; edges: Edge[] } => {
+  const nodes: Node<any>[] = [];
   const edges: Edge[] = [];
   let yPos = 0;
   funnel.steps.forEach((step, index) => {
@@ -42,11 +42,14 @@ export const funnelToGraph = (funnel: Funnel): { nodes: Node[]; edges: Edge[] } 
       type: 'smoothstep',
     });
   }
-  return { nodes: nodes as Node[], edges };
+  return { nodes, edges };
 };
-export const graphToFunnel = (originalFunnel: Funnel, nodes: Node[]): Funnel => {
+function isFunnelStepNode(node: Node<any>): node is Node<FunnelStep> {
+    return node.data && 'id' in node.data && 'type' in node.data && 'name' in node.data && 'path' in node.data && node.type !== 'placeholder';
+}
+export const graphToFunnel = (originalFunnel: Funnel, nodes: Node<any>[]): Funnel => {
   const steps: FunnelStep[] = nodes
-    .filter((node): node is Node<FunnelStep> => !!node.data && 'id' in node.data && node.type !== 'placeholder')
+    .filter(isFunnelStepNode)
     .sort((a, b) => a.position.y - b.position.y)
     .map(node => node.data);
   return {
@@ -55,11 +58,11 @@ export const graphToFunnel = (originalFunnel: Funnel, nodes: Node[]): Funnel => 
   };
 };
 export const addStepToGraph = (
-  nodes: Node[],
+  nodes: Node<any>[],
   edges: Edge[],
   parentNodeId: string,
   newStep: FunnelStep
-): { nodes: Node[]; edges: Edge[] } => {
+): { nodes: Node<any>[]; edges: Edge[] } => {
   const parentNode = nodes.find(n => n.id === parentNodeId);
   if (!parentNode) return { nodes, edges };
   const newNodes = [...nodes];
@@ -70,18 +73,14 @@ export const addStepToGraph = (
     position: { x: parentNode.position.x, y: parentNode.position.y + NODE_HEIGHT + VERTICAL_GAP },
     data: newStep,
   };
-  // Find the node that was originally after the parent
   const originalTargetEdge = edges.find(e => e.source === parentNodeId);
   const originalTargetNodeId = originalTargetEdge?.target;
-  // Remove the old edge from parent to its next node
   const filteredEdges = edges.filter(e => e.source !== parentNodeId);
-  // Add new node and edges
   newNodes.push(newNode);
   filteredEdges.push({ id: `${parentNodeId}-${newNode.id}`, source: parentNodeId, target: newNode.id, type: 'smoothstep' });
   if (originalTargetNodeId) {
     filteredEdges.push({ id: `${newNode.id}-${originalTargetNodeId}`, source: newNode.id, target: originalTargetNodeId, type: 'smoothstep' });
   }
-  // Re-calculate positions for all subsequent nodes
   const sortedNodes = newNodes
     .filter(n => n.type !== 'placeholder')
     .sort((a, b) => a.position.y - b.position.y);
@@ -91,7 +90,6 @@ export const addStepToGraph = (
     yPos += NODE_HEIGHT + VERTICAL_GAP;
     return updatedNode;
   });
-  // Add back the placeholder
   const lastNode = finalNodes[finalNodes.length - 1];
   const placeholder = nodes.find(n => n.type === 'placeholder');
   if (placeholder && lastNode) {
@@ -100,16 +98,15 @@ export const addStepToGraph = (
   return { nodes: finalNodes, edges: filteredEdges };
 };
 export const removeStepFromGraph = (
-  nodes: Node[],
+  nodes: Node<any>[],
   edges: Edge[],
   nodeIdToRemove: string
-): { nodes: Node[]; edges: Edge[] } => {
+): { nodes: Node<any>[]; edges: Edge[] } => {
   const nodeToRemove = nodes.find(n => n.id === nodeIdToRemove);
   if (!nodeToRemove || nodeToRemove.type === 'placeholder') return { nodes, edges };
   const incomingEdge = edges.find(e => e.target === nodeIdToRemove);
   const outgoingEdge = edges.find(e => e.source === nodeIdToRemove);
   let newEdges = edges.filter(e => e.source !== nodeIdToRemove && e.target !== nodeIdToRemove);
-  // Reconnect the graph if the removed node was in the middle
   if (incomingEdge && outgoingEdge) {
     newEdges.push({
       id: `${incomingEdge.source}-${outgoingEdge.target}`,
@@ -119,7 +116,6 @@ export const removeStepFromGraph = (
     });
   }
   const remainingNodes = nodes.filter(n => n.id !== nodeIdToRemove);
-  // Recalculate positions
   const sortedNodes = remainingNodes
     .filter(n => n.type !== 'placeholder')
     .sort((a, b) => a.position.y - b.position.y);

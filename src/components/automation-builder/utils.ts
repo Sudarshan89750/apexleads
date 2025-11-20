@@ -3,7 +3,7 @@ import type { Workflow, WorkflowAction } from '@shared/types';
 const NODE_HEIGHT = 120;
 const VERTICAL_GAP = 80;
 const HORIZONTAL_GAP = 150;
-export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edge[] } => {
+export const workflowToGraph = (workflow: Workflow): { nodes: Node<any>[]; edges: Edge[] } => {
   const nodes: Node<any>[] = [];
   const edges: Edge[] = [];
   // Trigger Node
@@ -76,7 +76,7 @@ export const workflowToGraph = (workflow: Workflow): { nodes: Node[]; edges: Edg
 };
 export const graphToWorkflow = (
   originalWorkflow: Workflow,
-  nodes: Node[],
+  nodes: Node<any>[],
   _edges: Edge[]
 ): Workflow => {
   const actions: WorkflowAction[] = [];
@@ -85,7 +85,10 @@ export const graphToWorkflow = (
   // A production implementation would need to traverse the graph from the trigger.
   actionNodes.sort((a, b) => a.position.y - b.position.y);
   for (const node of actionNodes) {
-    actions.push(node.data as WorkflowAction);
+    // Type guard to ensure node.data is a valid WorkflowAction
+    if (node.data && 'type' in node.data && 'name' in node.data && 'details' in node.data) {
+      actions.push(node.data as WorkflowAction);
+    }
   }
   return {
     ...originalWorkflow,
