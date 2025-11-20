@@ -1,14 +1,59 @@
 import { Hono } from "hono";
 import type { Env } from './core-utils';
-import { UserEntity, ChatBoardEntity, ContactEntity } from "./entities";
+import { UserEntity, ChatBoardEntity, ContactEntity, OpportunityEntity, PipelineStageEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
-import { MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES, MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
-import type { Contact } from "@shared/types";
+import { MOCK_DASHBOARD_STATS, MOCK_CHART_DATA } from "@shared/mock-data";
+import type { Contact, Opportunity } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   // ApexLeads Routes
   app.get('/api/dashboard-stats', (c) => ok(c, MOCK_DASHBOARD_STATS));
   app.get('/api/revenue-chart', (c) => ok(c, MOCK_CHART_DATA));
-  app.get('/api/opportunities', (c) => ok(c, { opportunities: MOCK_OPPORTUNITIES, stages: MOCK_PIPELINE_STAGES }));
+  // Opportunities & Stages
+  app.get('/api/opportunities', async (c) => {
+    await OpportunityEntity.ensureSeed(c.env);
+    await PipelineStageEntity.ensureSeed(c.env);
+    const [{ items: opportunities }, { items: stages }] = await Promise.all([
+      OpportunityEntity.list(c.env),
+      PipelineStageEntity.list(c.env),
+    ]);
+    return ok(c, { opportunities, stages });
+  });
+  app.post('/api/opportunities', async (c) => {
+    const body = await c.req.json<Omit<Opportunity, 'id' | 'createdAt' | 'lastUpdate'>>();
+    if (!body.title || !body.contactName || !body.stageId) {
+      return bad(c, 'Title, Contact Name, and Stage are required');
+    }
+    const now = new Date().toISOString();
+    const newOpportunity: Opportunity = {
+      id: crypto.randomUUID(),
+      ...body,
+      value: body.value || 0,
+      createdAt: now,
+      lastUpdate: now,
+    };
+    const created = await OpportunityEntity.create(c.env, newOpportunity);
+    return ok(c, created);
+  });
+  app.put('/api/opportunities/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json<Partial<Opportunity>>();
+    const opportunity = new OpportunityEntity(c.env, id);
+    if (!(await opportunity.exists())) {
+      return notFound(c, 'Opportunity not found');
+    }
+    const updatePayload = { ...body, lastUpdate: new Date().toISOString() };
+    await opportunity.patch(updatePayload);
+    const updatedOpportunity = await opportunity.getState();
+    return ok(c, updatedOpportunity);
+  });
+  app.delete('/api/opportunities/:id', async (c) => {
+    const id = c.req.param('id');
+    const deleted = await OpportunityEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Opportunity not found');
+    }
+    return ok(c, { id, deleted: true });
+  });
   // Contacts CRUD
   app.get('/api/contacts', async (c) => {
     await ContactEntity.ensureSeed(c.env);

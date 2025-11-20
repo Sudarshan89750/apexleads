@@ -36,6 +36,7 @@ export interface Opportunity {
   value: number;
   stageId: string;
   lastUpdate: string;
+  createdAt: string;
 }
 export interface PipelineStage {
   id: string;

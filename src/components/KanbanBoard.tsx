@@ -16,21 +16,55 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import type { Opportunity, PipelineStage } from '@shared/types';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, MoreHorizontal, Loader2 } from 'lucide-react';
+import { api } from '@/lib/api-client';
+import { toast } from "sonner";
+import { OpportunityForm, OpportunityFormValues } from './OpportunityForm';
 type KanbanBoardProps = {
   stages: PipelineStage[];
   opportunities: Opportunity[];
+  onDataChange: () => void;
 };
 type OpportunityCardProps = {
   opportunity: Opportunity;
+  onEdit: (opportunity: Opportunity) => void;
+  onDelete: (opportunity: Opportunity) => void;
 };
-function OpportunityCard({ opportunity }: OpportunityCardProps) {
+function OpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps) {
   return (
-    <Card className="mb-4 bg-card hover:shadow-md transition-shadow duration-200">
+    <Card className="mb-4 bg-card hover:shadow-md transition-shadow duration-200 group">
       <CardHeader className="p-4 flex flex-row items-center justify-between">
         <CardTitle className="text-sm font-medium leading-none">{opportunity.title}</CardTitle>
-        <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+        <div className="flex items-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(opportunity)}>Edit</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onDelete(opportunity)} className="text-red-600">Delete</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <GripVertical className="h-4 w-4 text-muted-foreground cursor-grab" />
+        </div>
       </CardHeader>
       <CardContent className="p-4 pt-0">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -46,7 +80,7 @@ function OpportunityCard({ opportunity }: OpportunityCardProps) {
     </Card>
   );
 }
-function SortableOpportunityCard({ opportunity }: OpportunityCardProps) {
+function SortableOpportunityCard({ opportunity, onEdit, onDelete }: OpportunityCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: opportunity.id,
     data: {
@@ -59,19 +93,21 @@ function SortableOpportunityCard({ opportunity }: OpportunityCardProps) {
     transition,
   };
   if (isDragging) {
-    return <div ref={setNodeRef} style={style} className="opacity-50"><OpportunityCard opportunity={opportunity} /></div>;
+    return <div ref={setNodeRef} style={style} className="opacity-50"><OpportunityCard opportunity={opportunity} onEdit={() => {}} onDelete={() => {}} /></div>;
   }
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <OpportunityCard opportunity={opportunity} />
+      <OpportunityCard opportunity={opportunity} onEdit={onEdit} onDelete={onDelete} />
     </div>
   );
 }
 type StageColumnProps = {
   stage: PipelineStage;
   opportunities: Opportunity[];
+  onEdit: (opportunity: Opportunity) => void;
+  onDelete: (opportunity: Opportunity) => void;
 };
-function StageColumn({ stage, opportunities }: StageColumnProps) {
+function StageColumn({ stage, opportunities, onEdit, onDelete }: StageColumnProps) {
   const opportunitiesIds = useMemo(() => opportunities.map((opp) => opp.id), [opportunities]);
   const { setNodeRef } = useSortable({
     id: stage.id,
@@ -87,16 +123,24 @@ function StageColumn({ stage, opportunities }: StageColumnProps) {
       <div className="flex-1 bg-muted/50 rounded-lg p-2">
         <SortableContext items={opportunitiesIds}>
           {opportunities.map((opp) => (
-            <SortableOpportunityCard key={opp.id} opportunity={opp} />
+            <SortableOpportunityCard key={opp.id} opportunity={opp} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </SortableContext>
       </div>
     </div>
   );
 }
-export function KanbanBoard({ stages, opportunities: initialOpportunities }: KanbanBoardProps) {
+export function KanbanBoard({ stages, opportunities: initialOpportunities, onDataChange }: KanbanBoardProps) {
   const [opportunities, setOpportunities] = useState(initialOpportunities);
   const [activeOpportunity, setActiveOpportunity] = useState<Opportunity | null>(null);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // Update local state if props change
+  useEffect(() => {
+    setOpportunities(initialOpportunities);
+  }, [initialOpportunities]);
   const opportunitiesByStage = useMemo(() => {
     const grouped: Record<string, Opportunity[]> = {};
     stages.forEach((stage) => {
@@ -121,99 +165,155 @@ export function KanbanBoard({ stages, opportunities: initialOpportunities }: Kan
       setActiveOpportunity(event.active.data.current.opportunity);
     }
   }, []);
-  const onDragEnd = useCallback((event: DragEndEvent) => {
+  const onDragEnd = useCallback(async (event: DragEndEvent) => {
     setActiveOpportunity(null);
     const { active, over } = event;
-    if (!over) return;
-    if (active.id === over.id) return;
-    const activeOpportunityData = active.data.current?.opportunity as Opportunity;
+    if (!over || active.id === over.id) return;
+    const activeOpp = active.data.current?.opportunity as Opportunity;
     const overData = over.data.current;
-    const activeStageId = activeOpportunityData.stageId;
-    let overStageId: string;
-    if (overData?.type === 'Opportunity') {
-      overStageId = (overData.opportunity as Opportunity).stageId;
-    } else if (overData?.type === 'Stage') {
-      overStageId = over.id as string;
-    } else {
-      // Fallback for dropping on a column area but not a specific item
-      const overColumn = Object.keys(opportunitiesByStage).find(stageId => 
-        opportunitiesByStage[stageId].some(opp => opp.id === over.id)
-      );
-      overStageId = overColumn || activeStageId;
+    const overStageId = overData?.type === 'Stage' ? over.id : overData?.opportunity.stageId;
+    if (activeOpp.stageId !== overStageId) {
+      try {
+        await api(`/api/opportunities/${activeOpp.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ stageId: overStageId }),
+        });
+        toast.success(`Moved "${activeOpp.title}" to new stage.`);
+        onDataChange(); // Refresh data from parent
+      } catch (error) {
+        toast.error("Failed to move opportunity.");
+        console.error("Failed to update opportunity stage:", error);
+        // Revert optimistic update if it was implemented
+      }
     }
-    if (activeStageId !== overStageId) {
-      setOpportunities((prev) => {
-        const activeIndex = prev.findIndex((o) => o.id === active.id);
-        if (activeIndex === -1) return prev;
-        const updatedOpportunities = [...prev];
-        updatedOpportunities[activeIndex] = {
-          ...updatedOpportunities[activeIndex],
-          stageId: overStageId,
-        };
-        return updatedOpportunities;
-      });
-    }
-  }, [opportunitiesByStage]);
+  }, [onDataChange]);
   const onDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const isActiveAnOpportunity = active.data.current?.type === 'Opportunity';
     const isOverAnOpportunity = over.data.current?.type === 'Opportunity';
     if (!isActiveAnOpportunity) return;
-    // Dropping an Opportunity over another Opportunity
+    // Optimistic UI update for dragging
     if (isActiveAnOpportunity && isOverAnOpportunity) {
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
         const overIndex = prev.findIndex((o) => o.id === over.id);
         if (prev[activeIndex].stageId !== prev[overIndex].stageId) {
           const updatedOpportunities = [...prev];
-          updatedOpportunities[activeIndex] = {
-            ...updatedOpportunities[activeIndex],
-            stageId: prev[overIndex].stageId,
-          };
+          updatedOpportunities[activeIndex] = { ...updatedOpportunities[activeIndex], stageId: prev[overIndex].stageId };
           return arrayMove(updatedOpportunities, activeIndex, overIndex);
         }
         return arrayMove(prev, activeIndex, overIndex);
       });
     }
-    // Dropping an Opportunity over a Stage column
     const isOverAStage = over.data.current?.type === 'Stage';
     if (isActiveAnOpportunity && isOverAStage) {
       setOpportunities((prev) => {
         const activeIndex = prev.findIndex((o) => o.id === active.id);
         const updatedOpportunities = [...prev];
         if (updatedOpportunities[activeIndex].stageId !== over.id) {
-          updatedOpportunities[activeIndex] = {
-            ...updatedOpportunities[activeIndex],
-            stageId: String(over.id),
-          };
+          updatedOpportunities[activeIndex] = { ...updatedOpportunities[activeIndex], stageId: String(over.id) };
         }
         return updatedOpportunities;
       });
     }
   }, []);
+  const handleEditClick = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+    setIsEditFormOpen(true);
+  };
+  const handleDeleteClick = (opportunity: Opportunity) => {
+    setSelectedOpportunity(opportunity);
+    setIsDeleteConfirmOpen(true);
+  };
+  const handleEditSubmit = async (values: OpportunityFormValues) => {
+    if (!selectedOpportunity) return;
+    setIsSubmitting(true);
+    try {
+      await api(`/api/opportunities/${selectedOpportunity.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(values),
+      });
+      toast.success("Opportunity updated successfully.");
+      setIsEditFormOpen(false);
+      onDataChange();
+    } catch (error) {
+      toast.error("Failed to update opportunity.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  const confirmDelete = async () => {
+    if (!selectedOpportunity) return;
+    setIsSubmitting(true);
+    try {
+      await api(`/api/opportunities/${selectedOpportunity.id}`, { method: 'DELETE' });
+      toast.success("Opportunity deleted successfully.");
+      setIsDeleteConfirmOpen(false);
+      onDataChange();
+    } catch (error) {
+      toast.error("Failed to delete opportunity.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      onDragOver={onDragOver}
-      collisionDetection={closestCorners}
-    >
-      <div className="flex gap-4 overflow-x-auto p-1">
-        <SortableContext items={stages.map(s => s.id)}>
-          {stages.map((stage) => (
-            <StageColumn
-              key={stage.id}
-              stage={stage}
-              opportunities={opportunitiesByStage[stage.id] || []}
-            />
-          ))}
-        </SortableContext>
-      </div>
-      <DragOverlay>
-        {activeOpportunity ? <OpportunityCard opportunity={activeOpportunity} /> : null}
-      </DragOverlay>
-    </DndContext>
+    <>
+      <DndContext
+        sensors={sensors}
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        onDragOver={onDragOver}
+        collisionDetection={closestCorners}
+      >
+        <div className="flex gap-4 p-1">
+          <SortableContext items={stages.map(s => s.id)}>
+            {stages.map((stage) => (
+              <StageColumn
+                key={stage.id}
+                stage={stage}
+                opportunities={opportunitiesByStage[stage.id] || []}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+              />
+            ))}
+          </SortableContext>
+        </div>
+        <DragOverlay>
+          {activeOpportunity ? <OpportunityCard opportunity={activeOpportunity} onEdit={() => {}} onDelete={() => {}} /> : null}
+        </DragOverlay>
+      </DndContext>
+      {/* Edit Dialog */}
+      <Dialog open={isEditFormOpen} onOpenChange={setIsEditFormOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Opportunity</DialogTitle>
+          </DialogHeader>
+          <OpportunityForm
+            initialData={selectedOpportunity}
+            onSubmit={handleEditSubmit}
+            isLoading={isSubmitting}
+          />
+        </DialogContent>
+      </Dialog>
+      {/* Delete Dialog */}
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Are you sure?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete the opportunity "{selectedOpportunity?.title}". This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={confirmDelete} disabled={isSubmitting}>
+              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

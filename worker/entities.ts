@@ -2,8 +2,8 @@
  * Minimal real-world demo: One Durable Object instance per entity (User, ChatBoard), with Indexes for listing.
  */
 import { IndexedEntity } from "./core-utils";
-import type { User, Chat, ChatMessage, Contact } from "@shared/types";
-import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS } from "@shared/mock-data";
+import type { User, Chat, ChatMessage, Contact, Opportunity, PipelineStage } from "@shared/types";
+import { MOCK_CHAT_MESSAGES, MOCK_CHATS, MOCK_USERS, MOCK_CONTACTS, MOCK_OPPORTUNITIES, MOCK_PIPELINE_STAGES } from "@shared/mock-data";
 // USER ENTITY: one DO instance per user
 export class UserEntity extends IndexedEntity<User> {
   static readonly entityName = "user";
@@ -46,4 +46,29 @@ export class ContactEntity extends IndexedEntity<Contact> {
     createdAt: new Date().toISOString(),
   };
   static seedData = MOCK_CONTACTS;
+}
+// OPPORTUNITY ENTITY
+export class OpportunityEntity extends IndexedEntity<Opportunity> {
+  static readonly entityName = "opportunity";
+  static readonly indexName = "opportunities";
+  static readonly initialState: Opportunity = {
+    id: "",
+    title: "",
+    contactName: "",
+    value: 0,
+    stageId: "",
+    lastUpdate: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+  };
+  static seedData = MOCK_OPPORTUNITIES;
+}
+// PIPELINE STAGE ENTITY
+export class PipelineStageEntity extends IndexedEntity<PipelineStage> {
+  static readonly entityName = "pipelinestage";
+  static readonly indexName = "pipelinestages";
+  static readonly initialState: PipelineStage = {
+    id: "",
+    title: "",
+  };
+  static seedData = MOCK_PIPELINE_STAGES;
 }
